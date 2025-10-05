@@ -13,5 +13,8 @@ export class UserController {
         return this.userService.createUser(userData)
     }
 
-
+    @Get(':id')
+    async getUserById(@Param('id') id: string): Promise<UserModel | null> {
+    return this.userService.getUser({ id: Number(id) });
+    }
 }
