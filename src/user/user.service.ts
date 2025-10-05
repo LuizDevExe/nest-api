@@ -23,6 +23,14 @@ export class UserService {
     data: Prisma.UserUpdateInput;
   }): Promise<User> {
     const { where, data } = params;
+
+    const user = await this.prisma.user.findUnique({ where });
+
+    if (!user) {
+      throw new NotFoundException(`Usuário com id ${where.id} não encontrado`);
+    }
+
+    
     return this.prisma.user.update({
       data,
       where,
