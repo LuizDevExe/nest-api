@@ -17,4 +17,14 @@ export class UserController {
     async getUserById(@Param('id') id: string): Promise<UserModel | null> {
     return this.userService.getUser({ id: Number(id) });
     }
+
+    @Put(':id')
+    async updateUser(
+        @Body() userData: Prisma.UserUpdateInput,
+        @Param('id') id: string): Promise<UserModel> {
+    return this.userService.updateUser({
+      where: { id: Number(id) },
+      data: userData,
+    });
+  }
 }
