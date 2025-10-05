@@ -1,13 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { Prisma, User } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
   async createUser(data: Prisma.UserCreateInput) {
-    return this.prisma.user.create({ data });
+    const passwordHash = await bcrypt.hash(data.password, 10);
+
+    return this.prisma.user.create({
+      data: {...data, password: passwordHash}
+    });
   }
 
   async getUser(
@@ -30,7 +35,7 @@ export class UserService {
       throw new NotFoundException(`Usuário com id ${where.id} não encontrado`);
     }
 
-    
+
     return this.prisma.user.update({
       data,
       where,
