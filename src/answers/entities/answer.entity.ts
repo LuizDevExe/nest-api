@@ -1,7 +1,10 @@
 import { User } from 'src/user/entities/user.entity';
 import { Post } from 'src/post/entities/post.entity';
+import { Answers as PrismaAnwsers } from '@prisma/client';
 
-export class Answer {
+
+export class Answer implements PrismaAnwsers{
+  authorId: number;
   id: number;
   content: string;
   createdAt: Date;
