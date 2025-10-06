@@ -18,7 +18,7 @@ datasource db {
 model User {
   id    Int     @default(autoincrement()) @id
   email String  @unique
-  name  String?
+  name  String
   password String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -31,22 +31,24 @@ model User {
 model Post {
   id        Int      @default(autoincrement()) @id
   title     String
-  content   String?  
+  content   String 
+  createdAt DateTime @default(now())
 
-  authorId  Int?
-  author    User?    @relation(fields: [authorId], references: [id])
+
+  userId     Int
+  user       User    @relation(fields: [userId], references: [id])
   
   answers   Answers[]
 }
 
 model Answers{
   id        Int     @default(autoincrement()) @id
-  content   String?
+  content   String
   createdAt DateTime @default(now())
 
-  authorId  Int     
+  userId    Int     
   postId    Int
 
-  author    User?   @relation(fields: [authorId], references: [id])
+  user      User   @relation(fields: [userId], references: [id])
   post      Post    @relation(fields: [postId], references: [id])  
 }

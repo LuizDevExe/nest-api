@@ -5,8 +5,8 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
-  Put,
   UseGuards,
 } from '@nestjs/common';
 import { Prisma, User as UserModel } from '@prisma/client';
@@ -29,7 +29,7 @@ export class UserController {
     return this.userService.getUser({ id: Number(id) });
   }
 
-  @Put(':id')
+  @Patch(':id')
   async updateUser(
     @Body() userData: Prisma.UserUpdateInput,
     @Param('id') id: string,
