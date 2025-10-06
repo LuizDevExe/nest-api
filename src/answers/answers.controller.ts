@@ -8,7 +8,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
 export class AnswersController {
   constructor(private readonly answersService: AnswersService) {}
 
-  @Post(':questionId')
+  @Post(':postId')
   @UseGuards(AuthGuard)
   create(
     @Body() createAnswerDto: CreateAnswerDto, 
