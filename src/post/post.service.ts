@@ -19,7 +19,17 @@ export class PostService {
   }
 
   async findAll() {
-    return await this.prisma.post.findMany();
+    return await this.prisma.post.findMany({
+      select:{
+        answers:true,
+        user:{
+          select:{
+            name: true,
+            email: true,
+          }
+        }
+      },
+    });
   }
 
   async findOne(id: number) {
