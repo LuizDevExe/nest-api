@@ -44,6 +44,11 @@ export class PostService {
   }
 
   async remove(id: number) {
+    
+    await this.prisma.answers.deleteMany({
+      where:{postId: id}
+    })
+
     return await this.prisma.post.delete({where: {id}});
   }
 }
