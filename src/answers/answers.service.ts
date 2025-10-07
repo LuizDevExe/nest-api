@@ -10,7 +10,7 @@ export class AnswersService {
   async create(createAnswerDto: CreateAnswerDto, userId: number, postId: number) {
     
     const newAnswer = {
-      body: createAnswerDto.content,
+      content: createAnswerDto.content,
       user: {
         connect: { id: userId },
       },

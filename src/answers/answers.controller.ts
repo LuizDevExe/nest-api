@@ -15,7 +15,8 @@ export class AnswersController {
     @Request() req:any, 
     @Param('postId') postId: string,
   ) {
-    return this.answersService.create(createAnswerDto, req.sub, Number(postId));
+    const userId = req.user.sub;
+    return this.answersService.create(createAnswerDto, userId, Number(postId));
   } 
 
   @Get()
