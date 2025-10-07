@@ -10,8 +10,12 @@ export class PostController {
 
   @Post()
   @UseGuards(AuthGuard)
-  create(@Body() createPostDto: CreatePostDto, @Request() req: any) {
-    return this.postService.create(createPostDto, req.sub);
+  create(
+    @Body() createPostDto: CreatePostDto, 
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return this.postService.create(createPostDto, userId);
   }
 
   @Get()

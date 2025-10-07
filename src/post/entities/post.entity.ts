@@ -5,10 +5,10 @@ import { Post as PrismaPost } from '@prisma/client';
 
 
 export class Post implements PrismaPost{
+  userId: number;
   id: number;
   title: string;
   content: string;
-  authorId: number;
   createdAt: Date;
   updatedAt: Date;
 

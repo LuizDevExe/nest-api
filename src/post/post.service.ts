@@ -9,7 +9,12 @@ export class PostService {
 
   async create(createPostDto: CreatePostDto, userId: number) {
     return await this.prisma.post.create({
-      data: createPostDto,
+     data: {
+      ...createPostDto,
+      user: {
+        connect: { id: userId },
+      },
+    },
     });
   }
 
