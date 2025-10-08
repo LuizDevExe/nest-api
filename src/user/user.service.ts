@@ -80,6 +80,9 @@
         throw new NotFoundException(`Usuário com id ${where.id} não encontrado`);
       }
 
+      await this.prisma.post.deleteMany({ where: { userId: user.id }});
+      await this.prisma.answers.deleteMany({ where: { userId: user.id}});
+
       return this.prisma.user.delete({ 
         where, 
         select:{
