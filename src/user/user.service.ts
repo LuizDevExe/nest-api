@@ -23,10 +23,16 @@ export class UserService {
       throw new HttpException('Email já cadastrado', HttpStatus.CONFLICT);
     }
 
+    const trimmedData = {
+    ...data,
+    name: data.name?.trim(),
+    email: data.email?.trim(),
+  };
+
     const passwordHash = await bcrypt.hash(data.password, 10);
 
     const user = await this.prisma.user.create({
-      data: { ...data, password: passwordHash },
+      data: { ...trimmedData, password: passwordHash },
     });
 
     const { password, ...result } = user;
