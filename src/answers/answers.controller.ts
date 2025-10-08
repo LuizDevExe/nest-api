@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseIntPipe, BadRequestException } from '@nestjs/common';
 import { AnswersService } from './answers.service';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
@@ -34,6 +34,9 @@ export class AnswersController {
   @Patch(':id')
   @UseGuards(AuthGuard)
   update(@Param('id', ParseIntPipe) id: number, @Body() updateAnswerDto: UpdateAnswerDto) {
+    if ('id' in updateAnswerDto) {
+    throw new BadRequestException('The field id cannot be modified');
+  }
     return this.answersService.update(id, updateAnswerDto);
   }
 
