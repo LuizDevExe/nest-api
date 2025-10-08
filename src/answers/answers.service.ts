@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
 import { PrismaService } from 'src/database/prisma.service';
@@ -30,35 +34,38 @@ export class AnswersService {
 
     return this.prisma.answers.create({
       data: newAnswer,
-      select:{
+      select: {
         id: true,
+        postId: true,
+
         content: true,
         createdAt: true,
         updatedAt: true,
-        user:{
-          select:{
+        user: {
+          select: {
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
   }
 
   async findAll() {
     return await this.prisma.answers.findMany({
-      select:{
+      select: {
         id: true,
+        postId: true,
         content: true,
         createdAt: true,
         updatedAt: true,
-        user:{
-          select:{
+        user: {
+          select: {
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
   }
 
@@ -69,25 +76,32 @@ export class AnswersService {
       throw new NotFoundException(`Answer with id ${id} not found`);
     }
 
-    return await this.prisma.answers.findUnique({ 
+    return await this.prisma.answers.findUnique({
       where: { id },
-      select:{
+      select: {
         id: true,
+        postId: true,
+
         content: true,
         createdAt: true,
         updatedAt: true,
-        user:{
-          select:{
+        user: {
+          select: {
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
   }
 
   async update(id: number, updateAnswerDto: UpdateAnswerDto) {
     const answer = await this.prisma.answers.findUnique({ where: { id } });
+
+    if ('id' in updateAnswerDto) {
+      delete updateAnswerDto.id;
+      throw new BadRequestException('The field id cannot be modified');
+    }
 
     if (!answer) {
       throw new NotFoundException(`Answer with id ${id} not found`);
@@ -96,18 +110,18 @@ export class AnswersService {
     return await this.prisma.answers.update({
       where: { id },
       data: updateAnswerDto,
-      select:{
+      select: {
         id: true,
         content: true,
         createdAt: true,
         updatedAt: true,
-        user:{
-          select:{
+        user: {
+          select: {
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
   }
 
@@ -118,20 +132,20 @@ export class AnswersService {
       throw new NotFoundException(`Answer with id ${id} not found`);
     }
 
-    return await this.prisma.answers.delete({ 
+    return await this.prisma.answers.delete({
       where: { id },
-      select:{
+      select: {
         id: true,
         content: true,
         createdAt: true,
         updatedAt: true,
-        user:{
-          select:{
+        user: {
+          select: {
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
   }
 }
