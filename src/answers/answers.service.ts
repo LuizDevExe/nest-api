@@ -69,7 +69,21 @@ export class AnswersService {
       throw new NotFoundException(`Answer with id ${id} not found`);
     }
 
-    return await this.prisma.answers.findUnique({ where: { id } });
+    return await this.prisma.answers.findUnique({ 
+      where: { id },
+      select:{
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        user:{
+          select:{
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
   }
 
   async update(id: number, updateAnswerDto: UpdateAnswerDto) {
