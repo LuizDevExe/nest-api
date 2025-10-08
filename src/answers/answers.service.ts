@@ -30,11 +30,36 @@ export class AnswersService {
 
     return this.prisma.answers.create({
       data: newAnswer,
+      select:{
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        user:{
+          select:{
+            name: true,
+            email: true
+          }
+        }
+      }
     });
   }
 
   async findAll() {
-    return await this.prisma.answers.findMany();
+    return await this.prisma.answers.findMany({
+      select:{
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        user:{
+          select:{
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
   }
 
   async findOne(id: number) {
@@ -57,6 +82,18 @@ export class AnswersService {
     return await this.prisma.answers.update({
       where: { id },
       data: updateAnswerDto,
+      select:{
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        user:{
+          select:{
+            name: true,
+            email: true
+          }
+        }
+      }
     });
   }
 
