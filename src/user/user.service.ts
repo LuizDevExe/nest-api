@@ -37,7 +37,7 @@ export class UserService {
   async getUser(
     userWhereUniqueInput: Prisma.UserWhereUniqueInput,
   ): Promise<Omit<User, 'password'> | null> {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: userWhereUniqueInput,
       select: {
         id: true,
@@ -48,6 +48,12 @@ export class UserService {
         updatedAt: true,
       },
     });
+
+    if (!user) {
+      throw new NotFoundException(`User not found`);
+    }
+
+    return user;
   }
 
   async updateUser(params: {
