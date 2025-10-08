@@ -50,7 +50,20 @@ export class PostService {
             email: true,
           },
         },
-        answers: true,
+        answers: {
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            updatedAt: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
     });
   }
