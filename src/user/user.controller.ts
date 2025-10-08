@@ -15,6 +15,7 @@ import { Prisma, User as UserModel } from '@prisma/client';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateUserDto } from './dto/user-post.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @Controller('user')
 export class UserController {
@@ -23,7 +24,7 @@ export class UserController {
   @Post('')
   async signupUser(
     @Body(new ValidationPipe()) userData: CreateUserDto,
-  ): Promise<UserModel> {
+  ): Promise<UserResponseDto> {
     return this.userService.createUser(userData);
   }
 
@@ -39,7 +40,7 @@ export class UserController {
   async updateUser(
     @Body(new ValidationPipe()) userData: UpdateUserDto,
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<UserModel> {
+  ): Promise<UserResponseDto> {
     return this.userService.updateUser({
       where: { id },
       data: userData,
@@ -49,7 +50,7 @@ export class UserController {
   @Delete(':id')
   async deletePost(
     @Param('id', ParseIntPipe) id: number
-  ): Promise<UserModel> {
+  ): Promise<UserResponseDto> {
     return this.userService.deleteUser({ id});
   }
 }
