@@ -1,3 +1,4 @@
+import { name } from './../../node_modules/ci-info/index.d';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -19,6 +20,18 @@ export class PostService {
         ...createPostDto,
         user: {
           connect: { id: userId },
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
         },
       },
     });
@@ -62,13 +75,12 @@ export class PostService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user:{
-          select:{
-            email:true,
-            name:true,
-          }
-
-        }
+        user: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
       },
     });
   }
@@ -84,6 +96,21 @@ export class PostService {
       where: { postId: id },
     });
 
-    return await this.prisma.post.delete({ where: { id } });
+    return await this.prisma.post.delete({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        userId: false,
+        user: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
   }
 }
