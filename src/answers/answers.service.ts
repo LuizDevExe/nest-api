@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
 import { PrismaService } from 'src/database/prisma.service';
@@ -7,8 +7,17 @@ import { PrismaService } from 'src/database/prisma.service';
 export class AnswersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createAnswerDto: CreateAnswerDto, userId: number, postId: number) {
-    
+  async create(
+    createAnswerDto: CreateAnswerDto,
+    userId: number,
+    postId: number,
+  ) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+
+    if (!post) {
+      throw new NotFoundException(`Post with id ${postId} not found`);
+    }
+
     const newAnswer = {
       content: createAnswerDto.content,
       user: {
@@ -29,10 +38,22 @@ export class AnswersService {
   }
 
   async findOne(id: number) {
+    const answer = await this.prisma.answers.findUnique({ where: { id } });
+
+    if (!answer) {
+      throw new NotFoundException(`Answer with id ${id} not found`);
+    }
+
     return await this.prisma.answers.findUnique({ where: { id } });
   }
 
   async update(id: number, updateAnswerDto: UpdateAnswerDto) {
+    const answer = await this.prisma.answers.findUnique({ where: { id } });
+
+    if (!answer) {
+      throw new NotFoundException(`Answer with id ${id} not found`);
+    }
+
     return await this.prisma.answers.update({
       where: { id },
       data: updateAnswerDto,
@@ -40,6 +61,12 @@ export class AnswersService {
   }
 
   async remove(id: number) {
+    const answer = await this.prisma.answers.findUnique({ where: { id } });
+
+    if (!answer) {
+      throw new NotFoundException(`Answer with id ${id} not found`);
+    }
+
     return await this.prisma.answers.delete({ where: { id } });
   }
 }
