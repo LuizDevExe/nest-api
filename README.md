@@ -168,11 +168,11 @@ Para desenvolvimento, o Docker pode ser usado para subir o banco rapidamente.
 
 ```
 src/
- ├─ auth/
- ├─ user/
- ├─ post/
  ├─ answer/
- ├─ prisma/
+ ├─ auth/
+ ├─ database/
+ ├─ post/
+ ├─ user/
  └─ main.ts
 prisma/
  └─ schema.prisma
