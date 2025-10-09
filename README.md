@@ -39,14 +39,15 @@ npm install
 
 ```
 DATABASE_URL="postgresql://usuario:senha@localhost:5432/nome_do_banco?schema=public"
-JWT_SECRET="sua_chave_secreta"
+SECRET_KEY="sua_chave_secreta"
 PORT=3000
 ```
 
-ou pode ser criado um banco local
+ou você pode criar um banco local
 
 ```
 DATABASE_URL="file:./forum.db"
+SECRET_KEY="sua_chave_secreta"
 ```
 
 
@@ -91,7 +92,7 @@ No Swagger você pode:
 
 Testar todas as rotas da API
 
-Visualizar schemas de request e response
+Visualizar schemas de requisição e resposta
 
 Testar autenticação usando Bearer Token nos endpoints protegidos
 
@@ -143,7 +144,7 @@ POST /auth/signin — Login de usuário (retorna JWT)
 ```
 
 
-##🔒 Autenticação
+## 🔒 Autenticação
 
 Para acessar rotas protegidas:
 
@@ -156,7 +157,7 @@ No Swagger, clique em "Authorize" e cole o token no formato:
 Bearer <TOKEN>
 ```
 
-##💡 Dicas
+## 💡 Dicas
 
 Sempre rode npx prisma generate ao atualizar o schema do Prisma.
 
@@ -182,7 +183,8 @@ package.json
 
 
 ## 🛠️ Comandos úteis
+```
 npm run start:dev       # Rodar servidor em modo dev
 npx prisma migrate dev   # Aplicar migrações
 npx prisma studio        # Abrir Prisma Studio
-
+```
