@@ -1,5 +1,9 @@
 import { name } from './../../node_modules/ci-info/index.d';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'src/database/prisma.service';
@@ -76,12 +80,19 @@ export class PostService {
     const post = await this.prisma.post.findUnique({ where: { id } });
 
     if ('id' in updatePostDto) {
-          delete updatePostDto.id;
-          throw new BadRequestException('The field id cannot be modified');
-        }
+      delete updatePostDto.id;
+      throw new BadRequestException('The field id cannot be modified');
+    }
 
     if (!post) {
       throw new NotFoundException(`Post with ${id} not found`);
+    }
+
+    const forbiddenFields = ['id', 'createdAt', 'updatedAt'];
+    for (const field of forbiddenFields) {
+      if (field in updatePostDto) {
+        throw new BadRequestException(`The field ${field} cannot be modified.`);
+      }
     }
 
     return await this.prisma.post.update({
