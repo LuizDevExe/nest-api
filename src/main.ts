@@ -10,8 +10,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Fórum Simples com Nest.js')
-    .setDescription('Uma Api que simula as funções básicas de um fórum (singUp, signIn, Post e answers')
+    .setDescription('Uma Api que simula as funções básicas de um fórum (singUp, signIn, Post e answers)')
     .setVersion('1.0')
+    .addBearerAuth()
     .addTag('Fórum')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
