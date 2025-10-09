@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt'
 import { JwtService } from '@nestjs/jwt';
