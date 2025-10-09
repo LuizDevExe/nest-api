@@ -4,8 +4,12 @@ API REST desenvolvida em **NestJS**, com **Prisma** como ORM e documentação in
 
 ## 🧩 Tecnologias utilizadas
 - [NestJS](https://nestjs.com/)
+- [TypeScript](https://www.typescriptlang.org/)
 - [Prisma](https://www.prisma.io/)
 - [Swagger](https://swagger.io/)
+- [JWT](https://www.jwt.io/)
+- [bcrypt](https://www.npmjs.com/package/bcrypt)
+- [class-validator](https://github.com/typestack/class-validator)
 - [PostgreSQL / MySQL] (ou outro banco que estiver usando)
 ---
 
