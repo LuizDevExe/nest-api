@@ -14,7 +14,7 @@ API REST desenvolvida em **NestJS**, com **Prisma** como ORM e documentação in
 Antes de rodar a aplicação, você precisa ter instalado:
 
 - Node.js >= 18
-- npm ou yarn
+- npm
 - Banco de dados (PostgreSQL, MySQL ou SQLite)
 - [Opcional] Docker e Docker Compose
 
