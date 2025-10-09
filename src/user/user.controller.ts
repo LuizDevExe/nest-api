@@ -18,7 +18,6 @@ import { CreateUserDto } from './dto/user-post.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import {
-  ApiBasicAuth,
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
@@ -33,7 +32,10 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('')
-  @ApiOperation({ summary: 'Cria um novo usuário' })
+  @ApiOperation({ 
+    summary: 'Cria um novo usuário',
+    description: 'Cria um novo usuário recebendo os campos email, name e password'
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -84,7 +86,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Busca usuário pelo ID',
     description: `Recebe um id pelo parâmetro e retorna o usuário de mesmo id. 
-    \nRota protegida, para acessar é preciso fazer um sign-in e obter o token na rota auth/signin.`,
+    \nRota protegida — é necessário fazer sign-in e enviar o Bearer token.`,
   })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
   @ApiResponse({
@@ -131,7 +133,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Atualiza um usuário pelo ID',
     description: `Recebe um id pelo parâmetro e atualiza o usuário de mesmo id, a atualização pode ser parcial. 
-    \nRota protegida, para acessar é preciso fazer um sign-in e obter o token na rota auth/signin.`,
+    \nRota protegida — é necessário fazer sign-in e enviar o Bearer token.`,
   })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
   @ApiBody({
@@ -196,7 +198,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Deleta um usuário pelo ID',
     description: `Recebe um id pelo parâmetro e deleta o usuário de mesmo id. 
-    \nRota protegida, para acessar é preciso fazer um sign-in e obter o token na rota auth/signin.`,
+    \nRota protegida — é necessário fazer sign-in e enviar o Bearer token.`,
   })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
   @ApiResponse({
