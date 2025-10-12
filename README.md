@@ -1,6 +1,8 @@
-# NestJS + Prisma + Swagger API
+# Nest.js Forum API
 
-API REST desenvolvida em **NestJS**, com **Prisma** como ORM e documentação interativa via **Swagger**.
+API REST desenvolvida em **NestJS** que simula o funcionamento de um fórum. O projeto utiliza o **Prisma** como ORM e documentação interativa via **Swagger**.
+
+Esta API foi criada com o propósito de estudar a documentação oficial do NestJS e aplicar na prática os principais conceitos do framework, como arquitetura modular, injeção de dependências e integração com banco de dados via Prisma.
 
 ## 🧩 Tecnologias utilizadas
 - [NestJS](https://nestjs.com/)
@@ -20,59 +22,91 @@ Antes de rodar a aplicação, você precisa ter instalado:
 - Node.js >= 18
 - npm
 - Banco de dados (PostgreSQL, MySQL ou SQLite)
-- [Opcional] Docker e Docker Compose
-
 ---
 
 ## ⚙️ Configuração do projeto
 
 1. Clone o repositório:
 
-```
+``` bash
 git clone <URL_DO_REPOSITORIO>
 cd nome-do-projeto
 ```
 
 2. Instale as dependências:
 
-```
+```bash
 npm install
 ```
 
 3. Configure o arquivo .env na raiz do projeto. Exemplo de variáveis necessárias:
 
-```
-DATABASE_URL="postgresql://usuario:senha@localhost:5432/nome_do_banco?schema=public"
+- Se for utilizar PostgreSQL: 
+
+```bash
+# Ajuste o schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+````
+
+```bash
+# Ajuste o .env
+
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
 SECRET_KEY="sua_chave_secreta"
-PORT=3000
 ```
 
-ou você pode criar um banco local
+ou você pode criar um banco local com SQLite
+
+```bash
+# Ajuste o schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
 
 ```
+
+```bash
+# Ajuste o .env
+
 DATABASE_URL="file:./forum.db"
 SECRET_KEY="sua_chave_secreta"
 ```
 
 
+
 ## 🛠️ Prisma
 
-1. Gerar client do Prisma
+1. Gere o client do Prisma
 
-```
+```bash
 npx prisma generate
 ```
 
-2. Rodar migrações
+2. Rode as migrações
 
 Caso seja a primeira vez que você roda o projeto:
 
-```
+```bash
 npx prisma migrate dev --name init
 ```
 Isso cria o banco de dados e aplica o schema definido no prisma/schema.prisma.
 
-3. Inspecionar o banco
+3. Comando para inspecionar o banco
 
 Você pode abrir o Prisma Studio para visualizar os dados:
 ```
@@ -147,6 +181,8 @@ Auth
 POST /auth/signin — Login de usuário (retorna JWT)
 ```
 
+Essa rota é a responsável por criar um token JWT que será utilizado tanto para autenticação quanto para vincular o user na aos Posts e Answers durante a criação dos mesmos.
+
 
 ## 🔒 Autenticação
 
@@ -157,7 +193,7 @@ Faça login via /auth/signin
 Copie o token retornado
 
 No Swagger, clique em "Authorize" e cole o token no formato:
-```
+``` bash
 Bearer <TOKEN>
 ```
 
@@ -187,8 +223,8 @@ package.json
 
 
 ## 🛠️ Comandos úteis
-```
-npm run start:dev       # Rodar servidor em modo dev
-npx prisma migrate dev   # Aplicar migrações
-npx prisma studio        # Abrir Prisma Studio
+```bash
+npm run start:dev       # Roda servidor em modo dev
+npx prisma migrate dev   # Aplica migrações
+npx prisma studio        # Abre Prisma Studio
 ```
