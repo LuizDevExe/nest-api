@@ -4,6 +4,13 @@ API REST desenvolvida em **NestJS** que simula o funcionamento de um fórum. O p
 
 Esta API foi criada com o propósito de estudar a documentação oficial do NestJS e aplicar na prática os principais conceitos do framework, como arquitetura modular, injeção de dependências e integração com banco de dados via Prisma.
 
+![NestJS](https://img.shields.io/badge/nestjs-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
+![Swagger](https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
+
+
 ## 🧩 Tecnologias utilizadas
 - [NestJS](https://nestjs.com/)
 - [TypeScript](https://www.typescriptlang.org/)
