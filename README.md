@@ -19,7 +19,7 @@ Esta API foi criada com o propósito de estudar a documentação oficial do Nest
 - [JWT](https://www.jwt.io/)
 - [bcrypt](https://www.npmjs.com/package/bcrypt)
 - [class-validator](https://github.com/typestack/class-validator)
-- [PostgreSQL / MySQL] (ou outro banco que estiver usando)
+- [PostgreSQL / SQLite] (ou outro banco que você quiser utilizar)
 ---
 
 ## ⚡ Pré-requisitos
