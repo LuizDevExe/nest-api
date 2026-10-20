@@ -1,237 +1,120 @@
-# Nest.js Forum API
+# Nest Forum API
 
-API REST desenvolvida em **NestJS** que simula o funcionamento de um fórum. O projeto utiliza o **Prisma** como ORM e documentação interativa via **Swagger**.
-
-Esta API foi criada com o propósito de estudar a documentação oficial do NestJS e aplicar na prática os principais conceitos do framework, como arquitetura modular, injeção de dependências e integração com banco de dados via Prisma.
-
+[![CI](https://github.com/LuizDevExe/nest-api/actions/workflows/ci.yml/badge.svg)](https://github.com/LuizDevExe/nest-api/actions/workflows/ci.yml)
 ![NestJS](https://img.shields.io/badge/nestjs-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
-![Swagger](https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
+![PostgreSQL](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
+API REST de um fórum: usuários, posts e respostas, com login por JWT. Feita em **NestJS** com **Prisma** e **PostgreSQL**, documentada no **Swagger**, testada de ponta a ponta contra um banco de verdade e com CI no GitHub Actions.
 
-## 🧩 Tecnologias utilizadas
-- [NestJS](https://nestjs.com/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Prisma](https://www.prisma.io/)
-- [Swagger](https://swagger.io/)
-- [JWT](https://www.jwt.io/)
-- [bcrypt](https://www.npmjs.com/package/bcrypt)
-- [class-validator](https://github.com/typestack/class-validator)
-- [PostgreSQL / SQLite] (ou outro banco que você quiser utilizar)
----
+## Rodando
 
-## ⚡ Pré-requisitos
-
-Antes de rodar a aplicação, você precisa ter instalado:
-
-- Node.js >= 18
-- npm
-- Banco de dados (PostgreSQL, MySQL ou SQLite)
----
-
-## ⚙️ Configuração do projeto
-
-1. Clone o repositório:
-
-``` bash
-git clone <URL_DO_REPOSITORIO>
-cd nome-do-projeto
-```
-
-2. Instale as dependências:
+Pré-requisitos: Node.js 20.12 ou mais novo e Docker.
 
 ```bash
-npm install
+cp .env.example .env
+# preencha SECRET_KEY com uma chave de no mínimo 32 caracteres:
+#   openssl rand -base64 48
+docker compose up -d db        # Postgres na porta 5432
+npm ci
+npx prisma migrate deploy      # cria as tabelas
+npm run start:dev              # API em http://localhost:3000
 ```
 
-3. Configure o arquivo .env na raiz do projeto. Exemplo de variáveis necessárias:
+A documentação interativa fica em **http://localhost:3000/api**. Para as rotas protegidas, faça login em `POST /auth/signin`, clique em **Authorize** e cole o token.
 
-- Se for utilizar PostgreSQL: 
+Tudo dentro do Docker (banco e API, com as migrações aplicadas na subida):
 
 ```bash
-# Ajuste o schema.prisma
+docker compose --profile app up --build   # API em http://localhost:3000 (mude com API_PORT)
+```
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+A API **não sobe** sem `DATABASE_URL` e `SECRET_KEY`, nem com uma chave curta: melhor falhar na subida do que assinar tokens com uma chave fraca.
 
-generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
-}
-````
+## Testes
 
 ```bash
-# Ajuste o .env
-
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
-SECRET_KEY="sua_chave_secreta"
+npm test            # unidade
+npm run test:e2e    # ponta a ponta, contra o Postgres do docker compose
 ```
 
-ou você pode criar um banco local com SQLite
+Os testes e2e sobem a aplicação inteira e falam com ela por HTTP, num banco separado (`forum_test`, criado e migrado sozinho; as tabelas são zeradas entre os testes). Eles cobrem:
 
-```bash
-# Ajuste o schema.prisma
+- cadastro, senha fraca, e-mail repetido e login;
+- o login responde igual para e-mail desconhecido e senha errada;
+- token ausente ou assinado com outra chave;
+- **ninguém edita ou apaga a conta, o post ou a resposta de outra pessoa** (403);
+- campos que não existem no DTO são recusados (não dá para trocar o dono de um post mandando `userId`);
+- 404 para post e resposta que não existem;
+- apagar um post leva as respostas junto;
+- paginação da listagem de posts.
 
-generator client {
-  provider = "prisma-client-js"
-}
+O CI roda lint, testes de unidade, build e e2e (com um Postgres de serviço) a cada push e PR, e compila a imagem Docker.
 
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
-}
+## Regras de acesso
 
-```
+| Ação | Quem pode |
+| --- | --- |
+| Criar conta, fazer login | qualquer pessoa |
+| Ver usuários, posts e respostas | quem está logado |
+| Criar post ou resposta | quem está logado (vira o autor) |
+| Editar ou apagar post / resposta | só o autor |
+| Editar ou apagar a conta | só o dono da conta |
 
-```bash
-# Ajuste o .env
+## Endpoints
 
-DATABASE_URL="file:./forum.db"
-SECRET_KEY="sua_chave_secreta"
-```
+| Método | Rota | O que faz |
+| --- | --- | --- |
+| `POST` | `/user` | Cria um usuário |
+| `GET` | `/user/:id` | Busca um usuário (sem a senha) |
+| `PATCH` | `/user/:id` | Atualiza a própria conta |
+| `DELETE` | `/user/:id` | Apaga a própria conta, com os posts e as respostas |
+| `POST` | `/auth/signin` | Login; devolve o `access_token` (JWT, 12 h) |
+| `POST` | `/post` | Cria um post |
+| `GET` | `/post?page=1&limit=10` | Lista os posts, do mais novo para o mais antigo (máximo 50 por página) |
+| `GET` | `/post/:id` | Busca um post |
+| `PATCH` | `/post/:id` | Edita o próprio post |
+| `DELETE` | `/post/:id` | Apaga o próprio post e as respostas dele |
+| `POST` | `/answers/:postId` | Responde a um post |
+| `GET` | `/answers` | Lista as respostas |
+| `GET` | `/answers/:id` | Busca uma resposta |
+| `PATCH` | `/answers/:id` | Edita a própria resposta |
+| `DELETE` | `/answers/:id` | Apaga a própria resposta |
 
+A listagem de posts responde `{ data, meta: { page, limit, total, totalPages } }`.
 
+## Decisões
 
-## 🛠️ Prisma
+- **Testes e2e em vez de mocks.** As regras que importam aqui (quem pode o quê, o que vai para o banco) moram na integração entre guard, validação, serviço e Prisma. Mockar o Prisma esconderia exatamente os erros que esses testes pegam.
+- **Dono conferido no serviço.** `assertOwner` (`src/auth/ownership.ts`) responde 404 quando o registro não existe e 403 quando é de outra pessoa; o id do usuário logado chega pelo decorator `@CurrentUserId()`.
+- **Validação estrita.** O `ValidationPipe` global usa `whitelist` e `forbidNonWhitelisted`: só passa o que o DTO declara, e campo a mais é 400.
+- **Login sem vazamento.** E-mail desconhecido e senha errada devolvem o mesmo 401, e o e-mail desconhecido também passa por um `bcrypt.compare` (contra um hash qualquer), para o tempo de resposta não denunciar quem tem conta.
+- **Configuração conferida na subida** (`src/config/env.ts`), com o `.env` lido pelo próprio Node (`process.loadEnvFile`), sem dependência extra.
+- **Apagar conta em uma transação**: o usuário, os posts e as respostas saem juntos ou nada sai.
 
-1. Gere o client do Prisma
-
-```bash
-npx prisma generate
-```
-
-2. Rode as migrações
-
-Caso seja a primeira vez que você roda o projeto:
-
-```bash
-npx prisma migrate dev --name init
-```
-Isso cria o banco de dados e aplica o schema definido no prisma/schema.prisma.
-
-3. Comando para inspecionar o banco
-
-Você pode abrir o Prisma Studio para visualizar os dados:
-```
-npx prisma studio
-```
-## 🚀 Rodando a aplicação
-```
-npm run start:dev
-```
-Por padrão, a aplicação vai rodar em: http://localhost:3000
-
-## 📑 Swagger
-
-A documentação interativa está disponível em:
-
-```
-http://localhost:3000/api
-```
-
-No Swagger você pode:
-
-Testar todas as rotas da API
-
-Visualizar schemas de requisição e resposta
-
-Testar autenticação usando Bearer Token nos endpoints protegidos
-
-Para rotas protegidas, faça sign-in usando /auth/signin para gerar o token JWT e use-o no Swagger.
-
-## 📝 Endpoints principais
-
-Users
-
-```
-POST /user — Cria um usuário
-
-GET /user/:id — Retorna um usuário pelo ID
-
-PATCH /user/:id — Atualiza usuário
-
-DELETE /user/:id — Deleta usuário
-```
-
-Posts
-```
-POST /post — Cria um post
-
-GET /post — Lista todos os posts
-
-GET /post/:id — Retorna um post pelo ID
-
-PATCH /post/:id — Atualiza post
-
-DELETE /post/:id — Deleta post
-```
-
-Answers
-```
-POST /answer — Cria uma resposta para um post
-
-GET /answer — Lista todas as respostas
-
-GET /answer/:id — Retorna uma resposta pelo ID
-
-PATCH /answer/:id — Atualiza apenas o conteúdo da resposta
-
-DELETE /answer/:id — Deleta uma resposta
-```
-
-Auth
-```
-POST /auth/signin — Login de usuário (retorna JWT)
-```
-
-Essa rota é a responsável por criar um token JWT que será utilizado tanto para autenticação quanto para vincular o user na aos Posts e Answers durante a criação dos mesmos.
-
-
-## 🔒 Autenticação
-
-Para acessar rotas protegidas:
-
-Faça login via /auth/signin
-
-Copie o token retornado
-
-No Swagger, clique em "Authorize" e cole o token no formato:
-``` bash
-Bearer <TOKEN>
-```
-
-## 💡 Dicas
-
-Sempre rode npx prisma generate ao atualizar o schema do Prisma.
-
-Use ValidationPipe globalmente no NestJS para validação de DTOs.
-
-Para desenvolvimento, o Docker pode ser usado para subir o banco rapidamente.
-
-## 📂 Estrutura do projeto
+## Estrutura
 
 ```
 src/
- ├─ answer/
- ├─ auth/
- ├─ database/
- ├─ post/
- ├─ user/
- └─ main.ts
-prisma/
- └─ schema.prisma
-.env
-package.json
+├─ auth/       login, guard JWT, @CurrentUserId, assertOwner
+├─ user/       cadastro e conta
+├─ post/       posts (com paginação)
+├─ answers/    respostas
+├─ common/     paginação
+├─ config/     variáveis de ambiente
+├─ database/   PrismaService
+├─ app.setup.ts  configuração compartilhada pela API e pelos testes
+└─ main.ts
+prisma/        schema e migrações
+test/          testes e2e e o setup do banco de teste
 ```
 
+## Comandos
 
-## 🛠️ Comandos úteis
 ```bash
-npm run start:dev       # Roda servidor em modo dev
-npx prisma migrate dev   # Aplica migrações
-npx prisma studio        # Abre Prisma Studio
+npm run start:dev     # API com reload
+npm run lint:check    # lint sem corrigir (o mesmo do CI)
+npx prisma studio     # navegar nos dados
 ```
