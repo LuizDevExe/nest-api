@@ -69,8 +69,8 @@ export class PostController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 1 },
             name: { type: 'string', example: 'Nome Comum' },
-            email: { type: 'string', example: 'exemplo@email.com' },
           },
         },
       },
@@ -149,8 +149,8 @@ export class PostController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 5 },
             name: { type: 'string', example: 'Nome Comum' },
-            email: { type: 'string', example: 'exemplo@email.com' },
           },
         },
       },
@@ -195,8 +195,8 @@ export class PostController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 2 },
             name: { type: 'string', example: 'Lucas Mabele' },
-            email: { type: 'string', example: 'user2@email.com' },
           },
         },
       },
@@ -240,8 +240,8 @@ export class PostController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 5 },
             name: { type: 'string', example: 'Nome Comum' },
-            email: { type: 'string', example: 'exemplo@email.com' },
           },
         },
       },

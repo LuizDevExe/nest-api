@@ -71,8 +71,8 @@ export class AnswersController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 1 },
             name: { type: 'string', example: 'Nome Comum' },
-            email: { type: 'string', example: 'example@email.com' },
           },
         },
       },
@@ -126,8 +126,8 @@ export class AnswersController {
           user: {
             type: 'object',
             properties: {
+              id: { type: 'number', example: 1 },
               name: { type: 'string', example: 'Nome Comum' },
-              email: { type: 'string', example: 'example@email.com' },
             },
           },
         },
@@ -172,8 +172,8 @@ export class AnswersController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 2 },
             name: { type: 'string', example: 'Lucas Mabele' },
-            email: { type: 'string', example: 'user2@email.com' },
           },
         },
       },
@@ -231,8 +231,8 @@ export class AnswersController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 2 },
             name: { type: 'string', example: 'Lucas Mabele' },
-            email: { type: 'string', example: 'user2@email.com' },
           },
         },
       },
@@ -285,8 +285,8 @@ export class AnswersController {
         user: {
           type: 'object',
           properties: {
+            id: { type: 'number', example: 1 },
             name: { type: 'string', example: 'Nome Comum' },
-            email: { type: 'string', example: 'example@email.com' },
           },
         },
       },
