@@ -25,10 +25,10 @@ export class UserService {
     }
 
     const trimmedData = {
-    ...data,
-    name: data.name?.trim(),
-    email: data.email?.trim(),
-  };
+      ...data,
+      name: data.name?.trim(),
+      email: data.email?.trim(),
+    };
 
     const passwordHash = await bcrypt.hash(data.password, 10);
 
@@ -63,51 +63,46 @@ export class UserService {
     return user;
   }
 
-async updateUser(params: {
-  where: Prisma.UserWhereUniqueInput;
-  data: Prisma.UserUpdateInput;
-}): Promise<UserResponseDto> {
-  const { where, data } = params;
+  async updateUser(params: {
+    where: Prisma.UserWhereUniqueInput;
+    data: Prisma.UserUpdateInput;
+  }): Promise<UserResponseDto> {
+    const { where, data } = params;
 
-  
-  const existingUser = await this.prisma.user.findUnique({ where });
-  if (!existingUser) {
-    throw new NotFoundException(`User with id ${where.id} not found.`);
-  }
-
- 
-  const forbiddenFields = ['id', 'createdAt', 'updatedAt'];
-  for (const field of forbiddenFields) {
-    if (field in data) {
-      throw new BadRequestException(`The field ${field} cannot be modified.`);
-    }
-  }
-
-  
-  if (data.password && typeof data.password === 'string') {
-    data.password = await bcrypt.hash(data.password, 10);
-  }
-
-  try {
-    
-    const updatedUser = await this.prisma.user.update({
-      data,
-      where,
-    });
-
-    
-    const { password, ...result } = updatedUser;
-    return result as UserResponseDto;
-
-  } catch (error: any) {
-    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-      throw new ConflictException('This email is already registered in the system.');
+    const existingUser = await this.prisma.user.findUnique({ where });
+    if (!existingUser) {
+      throw new NotFoundException(`User with id ${where.id} not found.`);
     }
 
-    throw error; 
-  }
-}
+    const forbiddenFields = ['id', 'createdAt', 'updatedAt'];
+    for (const field of forbiddenFields) {
+      if (field in data) {
+        throw new BadRequestException(`The field ${field} cannot be modified.`);
+      }
+    }
 
+    if (data.password && typeof data.password === 'string') {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+
+    try {
+      const updatedUser = await this.prisma.user.update({
+        data,
+        where,
+      });
+
+      const { password, ...result } = updatedUser;
+      return result as UserResponseDto;
+    } catch (error: any) {
+      if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        throw new ConflictException(
+          'This email is already registered in the system.',
+        );
+      }
+
+      throw error;
+    }
+  }
 
   async deleteUser(
     where: Prisma.UserWhereUniqueInput,

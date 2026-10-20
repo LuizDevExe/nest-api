@@ -3,6 +3,6 @@ import { CreateAnswerDto } from './create-answer.dto';
 import { IsOptional } from 'class-validator';
 
 export class UpdateAnswerDto extends PartialType(CreateAnswerDto) {
-    @IsOptional()
-    id?: number; 
+  @IsOptional()
+  id?: number;
 }

@@ -7,7 +7,6 @@ import { DatabaseModule } from './database/database.module';
 import { PostModule } from './post/post.module';
 import { AnswersModule } from './answers/answers.module';
 
-
 @Module({
   imports: [UserModule, AuthModule, DatabaseModule, PostModule, AnswersModule],
   controllers: [],

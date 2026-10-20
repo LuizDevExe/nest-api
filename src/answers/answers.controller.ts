@@ -259,9 +259,8 @@ export class AnswersController {
       throw new BadRequestException(
         `These fields cannot be update: ${invalidFields.join(', ')}`,
       );
-
     }
-     return this.answersService.update(id, updateAnswerDto);
+    return this.answersService.update(id, updateAnswerDto);
   }
 
   @Delete(':id')

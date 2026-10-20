@@ -32,9 +32,10 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Cria um novo usuário',
-    description: 'Cria um novo usuário recebendo os campos email, name e password'
+    description:
+      'Cria um novo usuário recebendo os campos email, name e password',
   })
   @ApiBody({
     schema: {

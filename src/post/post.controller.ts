@@ -14,7 +14,13 @@ import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 @Controller('post')
 export class PostController {
@@ -22,7 +28,6 @@ export class PostController {
 
   @Post()
   @UseGuards(AuthGuard)
-
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Cria um novo post',
@@ -50,7 +55,10 @@ export class PostController {
       properties: {
         id: { type: 'number', example: 1 },
         title: { type: 'string', example: 'Título do Post' },
-        content: { type: 'string', example: 'Aqui está um exemplo de conteúdo' },
+        content: {
+          type: 'string',
+          example: 'Aqui está um exemplo de conteúdo',
+        },
         createdAt: {
           type: 'string',
           format: 'date-time',
@@ -70,7 +78,6 @@ export class PostController {
     status: 400,
     description: 'Erro de validação, retorna o campo que está incorreto',
   })
-
   create(@Body() createPostDto: CreatePostDto, @Request() req: any) {
     const userId = req.user.sub;
     return this.postService.create(createPostDto, userId);
@@ -78,7 +85,6 @@ export class PostController {
 
   @Get()
   @UseGuards(AuthGuard)
-
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Busca todos os posts',
@@ -93,7 +99,10 @@ export class PostController {
       properties: {
         id: { type: 'number', example: 5 },
         title: { type: 'string', example: 'Post para testar answers' },
-        content: { type: 'string', example: 'Esse é o conteúdo do segundo post' },
+        content: {
+          type: 'string',
+          example: 'Esse é o conteúdo do segundo post',
+        },
         createdAt: {
           type: 'string',
           format: 'date-time',
@@ -106,23 +115,21 @@ export class PostController {
             email: { type: 'string', example: 'exemplo@email.com' },
           },
         },
-        answers:{
+        answers: {
           type: 'array',
-          items:{
-            type:'object',
-          }
-        }
+          items: {
+            type: 'object',
+          },
+        },
       },
     },
   })
-
   findAll() {
     return this.postService.findAll();
   }
 
   @Get(':id')
   @UseGuards(AuthGuard)
-
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Busca um post pelo ID',
@@ -138,7 +145,10 @@ export class PostController {
       properties: {
         id: { type: 'number', example: 5 },
         title: { type: 'string', example: 'Post para testar answers' },
-        content: { type: 'string', example: 'Esse é o conteúdo do segundo post' },
+        content: {
+          type: 'string',
+          example: 'Esse é o conteúdo do segundo post',
+        },
         createdAt: {
           type: 'string',
           format: 'date-time',
@@ -155,15 +165,13 @@ export class PostController {
     },
   })
   @ApiResponse({ status: 404, description: 'Post não encontrado' })
-
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.postService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard)
-
- @ApiBearerAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Atualiza um post pelo ID',
     description: `Permite atualizar o título e/ou conteúdo de um post existente.  
@@ -207,8 +215,6 @@ export class PostController {
     description: 'Erro de validação, retorna o campo que está incorreto',
   })
   @ApiResponse({ status: 404, description: 'Post não encontrado' })
-
-
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePostDto: UpdatePostDto,
@@ -249,7 +255,6 @@ export class PostController {
     },
   })
   @ApiResponse({ status: 404, description: 'Post não encontrado' })
-
   @Delete(':id')
   @UseGuards(AuthGuard)
   remove(@Param('id', ParseIntPipe) id: number) {

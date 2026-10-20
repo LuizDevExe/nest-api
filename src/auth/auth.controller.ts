@@ -5,14 +5,11 @@ import { Prisma } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
+  constructor(private readonly authService: AuthService) {}
 
-    constructor(
-        private readonly authService: AuthService){};
-
-    @Post('signin')
-    @HttpCode(HttpStatus.OK)
-
-@Post('signin')
+  @Post('signin')
+  @HttpCode(HttpStatus.OK)
+  @Post('signin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Realiza o login do usuário',
@@ -50,8 +47,7 @@ export class AuthController {
     status: 400,
     description: 'Erro de validação, retorna o campo que está incorreto',
   })
-
-    signIn(@Body() body: Prisma.UserCreateInput){
-        return this.authService.signIn(body);
-    }
+  signIn(@Body() body: Prisma.UserCreateInput) {
+    return this.authService.signIn(body);
+  }
 }

@@ -8,6 +8,6 @@ import { AuthModule } from 'src/auth/auth.module';
   imports: [DatabaseModule, forwardRef(() => AuthModule)],
   controllers: [UserController],
   providers: [UserService],
-  exports: [UserService]
+  exports: [UserService],
 })
 export class UserModule {}
