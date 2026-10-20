@@ -12,7 +12,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { Prisma, User as UserModel } from '@prisma/client';
+import { User as UserModel } from '@prisma/client';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CurrentUserId } from 'src/auth/current-user.decorator';
 import { CreateUserDto } from './dto/user-post.dto';

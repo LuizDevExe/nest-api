@@ -85,8 +85,12 @@ export class UserService {
 
       const { password, ...result } = updatedUser;
       return result as UserResponseDto;
-    } catch (error: any) {
-      if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+    } catch (error) {
+      // e-mail já usado por outra conta (restrição unique do banco)
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException(
           'This email is already registered in the system.',
         );
