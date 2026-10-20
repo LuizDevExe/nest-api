@@ -1,0 +1,21 @@
+# Postgres para desenvolvimento e testes. A API roda fora (npm run start:dev)
+# ou dentro, com o perfil "app": docker compose --profile app up
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: forum
+      POSTGRES_PASSWORD: forum
+      POSTGRES_DB: forum
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forum -d forum"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  db-data:

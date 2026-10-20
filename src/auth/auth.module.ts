@@ -10,10 +10,13 @@ import { DatabaseModule } from 'src/database/database.module';
   imports: [
     DatabaseModule,
     forwardRef(() => UserModule),
-    JwtModule.register({
+    // registerAsync: a chave é lida quando o módulo sobe, depois do loadEnv(), e não no import
+    JwtModule.registerAsync({
       global: true,
-      secret: process.env.SECRET_KEY || '',
-      signOptions: { expiresIn: '43200s' },
+      useFactory: () => ({
+        secret: process.env.SECRET_KEY,
+        signOptions: { expiresIn: '12h' },
+      }),
     }),
   ],
   providers: [AuthService, AuthGuard],
