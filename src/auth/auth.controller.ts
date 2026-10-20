@@ -1,7 +1,7 @@
 import { AuthService } from './auth.service';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Prisma } from '@prisma/client';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SignInDto } from './dto/sign-in.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -9,22 +9,10 @@ export class AuthController {
 
   @Post('signin')
   @HttpCode(HttpStatus.OK)
-  @Post('signin')
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Realiza o login do usuário',
     description: `Autentica um usuário existente no sistema.  
     Retorna um **token JWT (Bearer Token)** que deve ser usado nas rotas protegidas com o decorator **@ApiBearerAuth()**.`,
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', example: 'usuario@email.com' },
-        password: { type: 'string', example: 'SenhaForte123!' },
-      },
-      required: ['email', 'password'],
-    },
   })
   @ApiResponse({
     status: 200,
@@ -41,13 +29,14 @@ export class AuthController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Credenciais inválidas (email ou senha incorretos)',
+    description:
+      'Credenciais inválidas. A resposta é a mesma para e-mail desconhecido e senha errada.',
   })
   @ApiResponse({
     status: 400,
     description: 'Erro de validação, retorna o campo que está incorreto',
   })
-  signIn(@Body() body: Prisma.UserCreateInput) {
+  signIn(@Body() body: SignInDto) {
     return this.authService.signIn(body);
   }
 }

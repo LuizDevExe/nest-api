@@ -7,14 +7,13 @@ import {
   Param,
   Delete,
   UseGuards,
-  Request,
   ParseIntPipe,
-  BadRequestException,
 } from '@nestjs/common';
 import { AnswersService } from './answers.service';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { CurrentUserId } from 'src/auth/current-user.decorator';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -89,11 +88,10 @@ export class AnswersController {
   })
   create(
     @Body() createAnswerDto: CreateAnswerDto,
-    @Request() req: any,
-    @Param('postId') postId: string,
+    @CurrentUserId() userId: number,
+    @Param('postId', ParseIntPipe) postId: number,
   ) {
-    const userId = req.user.sub;
-    return this.answersService.create(createAnswerDto, userId, Number(postId));
+    return this.answersService.create(createAnswerDto, userId, postId);
   }
 
   @Get()
@@ -240,27 +238,18 @@ export class AnswersController {
       },
     },
   })
+  @ApiResponse({ status: 403, description: 'A resposta é de outra pessoa' })
   @ApiResponse({ status: 404, description: 'Resposta não encontrada' })
   @ApiResponse({
     status: 400,
-    description:
-      'Campos não podem ser alterados ou valores passados são inválidos',
+    description: 'Campo desconhecido ou valor inválido',
   })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAnswerDto: UpdateAnswerDto,
+    @CurrentUserId() userId: number,
   ) {
-    const allowedFields = ['content'];
-    const invalidFields = Object.keys(updateAnswerDto).filter(
-      (key) => !allowedFields.includes(key),
-    );
-
-    if (invalidFields.length > 0) {
-      throw new BadRequestException(
-        `These fields cannot be update: ${invalidFields.join(', ')}`,
-      );
-    }
-    return this.answersService.update(id, updateAnswerDto);
+    return this.answersService.update(id, updateAnswerDto, userId);
   }
 
   @Delete(':id')
@@ -304,7 +293,10 @@ export class AnswersController {
     },
   })
   @ApiResponse({ status: 404, description: 'Resposta não encontrada' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.answersService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUserId() userId: number,
+  ) {
+    return this.answersService.remove(id, userId);
   }
 }

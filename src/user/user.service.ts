@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   HttpException,
   HttpStatus,
@@ -74,13 +73,6 @@ export class UserService {
       throw new NotFoundException(`User with id ${where.id} not found.`);
     }
 
-    const forbiddenFields = ['id', 'createdAt', 'updatedAt'];
-    for (const field of forbiddenFields) {
-      if (field in data) {
-        throw new BadRequestException(`The field ${field} cannot be modified.`);
-      }
-    }
-
     if (data.password && typeof data.password === 'string') {
       data.password = await bcrypt.hash(data.password, 10);
     }
@@ -113,19 +105,22 @@ export class UserService {
       throw new NotFoundException(`Usuário com id ${where.id} não encontrado`);
     }
 
-    await this.prisma.post.deleteMany({ where: { userId: user.id } });
-    await this.prisma.answers.deleteMany({ where: { userId: user.id } });
-
-    return this.prisma.user.delete({
-      where,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        password: false,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    // o usuário, os posts e as respostas dele saem juntos, ou nada sai
+    const [, , deleted] = await this.prisma.$transaction([
+      this.prisma.answers.deleteMany({ where: { userId: user.id } }),
+      this.prisma.post.deleteMany({ where: { userId: user.id } }),
+      this.prisma.user.delete({
+        where,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          password: false,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
+    return deleted;
   }
 }

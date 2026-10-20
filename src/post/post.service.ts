@@ -1,9 +1,5 @@
-import { name } from './../../node_modules/ci-info/index.d';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { assertOwner } from 'src/auth/ownership';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'src/database/prisma.service';
@@ -73,27 +69,30 @@ export class PostService {
   }
 
   async findOne(id: number) {
-    return await this.prisma.post.findUnique({ where: { id } });
-  }
-
-  async update(id: number, updatePostDto: UpdatePostDto) {
-    const post = await this.prisma.post.findUnique({ where: { id } });
-
-    if ('id' in updatePostDto) {
-      delete updatePostDto.id;
-      throw new BadRequestException('The field id cannot be modified');
-    }
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { select: { name: true, email: true } },
+      },
+    });
 
     if (!post) {
-      throw new NotFoundException(`Post with ${id} not found`);
+      throw new NotFoundException(`Post with id ${id} not found`);
     }
+    return post;
+  }
 
-    const forbiddenFields = ['id', 'createdAt', 'updatedAt'];
-    for (const field of forbiddenFields) {
-      if (field in updatePostDto) {
-        throw new BadRequestException(`The field ${field} cannot be modified.`);
-      }
-    }
+  async update(id: number, updatePostDto: UpdatePostDto, userId: number) {
+    assertOwner(
+      await this.prisma.post.findUnique({ where: { id } }),
+      userId,
+      'Post',
+    );
 
     return await this.prisma.post.update({
       where: { id },
@@ -114,16 +113,13 @@ export class PostService {
     });
   }
 
-  async remove(id: number) {
-    const post = await this.prisma.post.findUnique({ where: { id } });
-
-    if (!post) {
-      throw new NotFoundException(`Post with ${id} not found`);
-    }
-
-    await this.prisma.answers.deleteMany({
-      where: { postId: id },
-    });
+  // as respostas saem junto (onDelete: Cascade no schema)
+  async remove(id: number, userId: number) {
+    assertOwner(
+      await this.prisma.post.findUnique({ where: { id } }),
+      userId,
+      'Post',
+    );
 
     return await this.prisma.post.delete({
       where: { id },

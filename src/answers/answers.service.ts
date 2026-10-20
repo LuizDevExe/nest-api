@@ -1,8 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { assertOwner } from 'src/auth/ownership';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
 import { PrismaService } from 'src/database/prisma.service';
@@ -95,17 +92,12 @@ export class AnswersService {
     });
   }
 
-  async update(id: number, updateAnswerDto: UpdateAnswerDto) {
-    const answer = await this.prisma.answers.findUnique({ where: { id } });
-
-    if ('id' in updateAnswerDto) {
-      delete updateAnswerDto.id;
-      throw new BadRequestException('The field id cannot be modified');
-    }
-
-    if (!answer) {
-      throw new NotFoundException(`Answer with id ${id} not found`);
-    }
+  async update(id: number, updateAnswerDto: UpdateAnswerDto, userId: number) {
+    assertOwner(
+      await this.prisma.answers.findUnique({ where: { id } }),
+      userId,
+      'Answer',
+    );
 
     return await this.prisma.answers.update({
       where: { id },
@@ -125,12 +117,12 @@ export class AnswersService {
     });
   }
 
-  async remove(id: number) {
-    const answer = await this.prisma.answers.findUnique({ where: { id } });
-
-    if (!answer) {
-      throw new NotFoundException(`Answer with id ${id} not found`);
-    }
+  async remove(id: number, userId: number) {
+    assertOwner(
+      await this.prisma.answers.findUnique({ where: { id } }),
+      userId,
+      'Answer',
+    );
 
     return await this.prisma.answers.delete({
       where: { id },

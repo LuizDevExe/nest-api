@@ -1,13 +1,12 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { UserService } from 'src/user/user.service';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/database/prisma.service';
+import { SignInDto } from './dto/sign-in.dto';
+
+// Hash de uma senha qualquer: e-mail desconhecido também paga um bcrypt.compare,
+// para o tempo de resposta não revelar quem tem conta.
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 
 @Injectable()
 export class AuthService {
@@ -16,27 +15,23 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async signIn(
-    params: Prisma.UserCreateInput,
-  ): Promise<{ access_token: String }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email: params.email },
-    });
+  async signIn({
+    email,
+    password,
+  }: SignInDto): Promise<{ access_token: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    const passwordMatch = await bcrypt.compare(
+      password,
+      user?.password ?? DUMMY_HASH,
+    );
 
-    if (!user) {
-      throw new NotFoundException('Invalid credentials');
-    }
-
-    const passwordMatch = await bcrypt.compare(params.password, user.password);
-
-    if (!passwordMatch) {
+    // mesma resposta para e-mail desconhecido e senha errada
+    if (!user || !passwordMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id };
-
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      access_token: await this.jwtService.signAsync({ sub: user.id }),
     };
   }
 }

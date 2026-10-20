@@ -4,16 +4,17 @@ import {
   Controller,
   Delete,
   Get,
+  ForbiddenException,
   NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   UseGuards,
-  ValidationPipe,
 } from '@nestjs/common';
 import { Prisma, User as UserModel } from '@prisma/client';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { CurrentUserId } from 'src/auth/current-user.decorator';
 import { CreateUserDto } from './dto/user-post.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -25,6 +26,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+
+// cada um só edita e apaga a própria conta
+function assertSelf(id: number, userId: number): void {
+  if (id !== userId) {
+    throw new ForbiddenException('You can only change your own account');
+  }
+}
 
 @ApiTags('Users')
 @Controller('user')
@@ -75,9 +83,7 @@ export class UserController {
     status: 400,
     description: 'Erro de validação, retorna o campo que está incorreto',
   })
-  async signupUser(
-    @Body(new ValidationPipe()) userData: CreateUserDto,
-  ): Promise<UserResponseDto> {
+  async signupUser(@Body() userData: CreateUserDto): Promise<UserResponseDto> {
     return this.userService.createUser(userData);
   }
 
@@ -173,14 +179,17 @@ export class UserController {
     status: 400,
     description: 'Erro de validação, retorna o campo que está incorreto',
   })
+  @ApiResponse({ status: 403, description: 'A conta é de outra pessoa' })
   @ApiResponse({
     status: 404,
     description: 'Usuário não encontrado',
   })
   async updateUser(
-    @Body(new ValidationPipe()) userData: UpdateUserDto,
+    @Body() userData: UpdateUserDto,
     @Param('id', ParseIntPipe) id: number,
+    @CurrentUserId() userId: number,
   ): Promise<UserResponseDto> {
+    assertSelf(id, userId);
     const user = await this.userService.updateUser({
       where: { id },
       data: userData,
@@ -224,13 +233,16 @@ export class UserController {
       },
     },
   })
+  @ApiResponse({ status: 403, description: 'A conta é de outra pessoa' })
   @ApiResponse({
     status: 404,
     description: 'Usuário não encontrado',
   })
-  async deletePost(
+  async deleteUser(
     @Param('id', ParseIntPipe) id: number,
+    @CurrentUserId() userId: number,
   ): Promise<UserResponseDto> {
+    assertSelf(id, userId);
     const user = await this.userService.deleteUser({ id });
 
     if (!user) {

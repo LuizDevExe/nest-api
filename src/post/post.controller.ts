@@ -7,13 +7,13 @@ import {
   Param,
   Delete,
   UseGuards,
-  Request,
   ParseIntPipe,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { CurrentUserId } from 'src/auth/current-user.decorator';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -78,8 +78,10 @@ export class PostController {
     status: 400,
     description: 'Erro de validação, retorna o campo que está incorreto',
   })
-  create(@Body() createPostDto: CreatePostDto, @Request() req: any) {
-    const userId = req.user.sub;
+  create(
+    @Body() createPostDto: CreatePostDto,
+    @CurrentUserId() userId: number,
+  ) {
     return this.postService.create(createPostDto, userId);
   }
 
@@ -218,8 +220,9 @@ export class PostController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePostDto: UpdatePostDto,
+    @CurrentUserId() userId: number,
   ) {
-    return this.postService.update(id, updatePostDto);
+    return this.postService.update(id, updatePostDto, userId);
   }
 
   @UseGuards(AuthGuard)
@@ -257,7 +260,10 @@ export class PostController {
   @ApiResponse({ status: 404, description: 'Post não encontrado' })
   @Delete(':id')
   @UseGuards(AuthGuard)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.postService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUserId() userId: number,
+  ) {
+    return this.postService.remove(id, userId);
   }
 }
