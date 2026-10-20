@@ -3,6 +3,27 @@ import { assertOwner } from 'src/auth/ownership';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'src/database/prisma.service';
+import { PaginationQueryDto, toPage } from 'src/common/pagination';
+
+const AUTHOR = { select: { name: true, email: true } } as const;
+
+// o que a listagem devolve de cada post: o autor e as respostas com seus autores
+const POST_LIST_SELECT = {
+  id: true,
+  title: true,
+  content: true,
+  createdAt: true,
+  user: AUTHOR,
+  answers: {
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+      user: AUTHOR,
+    },
+  },
+} as const;
 
 @Injectable()
 export class PostService {
@@ -37,35 +58,18 @@ export class PostService {
     });
   }
 
-  async findAll() {
-    return await this.prisma.post.findMany({
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        createdAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        answers: {
-          select: {
-            id: true,
-            content: true,
-            createdAt: true,
-            updatedAt: true,
-            user: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    });
+  // do mais novo para o mais antigo; o id desempata posts criados no mesmo instante
+  async findAll(query: PaginationQueryDto) {
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: POST_LIST_SELECT,
+      }),
+      this.prisma.post.count(),
+    ]);
+    return toPage(data, total, query);
   }
 
   async findOne(id: number) {

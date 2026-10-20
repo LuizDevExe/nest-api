@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Body,
   Patch,
   Param,
@@ -14,6 +15,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CurrentUserId } from 'src/auth/current-user.decorator';
+import { PaginationQueryDto } from 'src/common/pagination';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -89,45 +91,33 @@ export class PostController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Busca todos os posts',
-    description: `Retorna todos os post.  
+    summary: 'Lista os posts, paginados',
+    description: `Retorna os posts do mais novo para o mais antigo, em páginas (?page=1&limit=10, máximo 50).  
     \nRota protegida — é necessário fazer sign-in e enviar o Bearer token.`,
   })
   @ApiResponse({
     status: 200,
-    description: 'Post encontrado',
+    description:
+      'Uma página de posts (data), com o autor e as respostas, e a paginação (meta)',
     schema: {
       type: 'object',
       properties: {
-        id: { type: 'number', example: 5 },
-        title: { type: 'string', example: 'Post para testar answers' },
-        content: {
-          type: 'string',
-          example: 'Esse é o conteúdo do segundo post',
-        },
-        createdAt: {
-          type: 'string',
-          format: 'date-time',
-          example: '2025-10-09T01:27:28.607Z',
-        },
-        user: {
+        data: { type: 'array', items: { type: 'object' } },
+        meta: {
           type: 'object',
           properties: {
-            name: { type: 'string', example: 'Nome Comum' },
-            email: { type: 'string', example: 'exemplo@email.com' },
-          },
-        },
-        answers: {
-          type: 'array',
-          items: {
-            type: 'object',
+            page: { type: 'number', example: 1 },
+            limit: { type: 'number', example: 10 },
+            total: { type: 'number', example: 42 },
+            totalPages: { type: 'number', example: 5 },
           },
         },
       },
     },
   })
-  findAll() {
-    return this.postService.findAll();
+  @ApiResponse({ status: 400, description: 'page ou limit inválidos' })
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.postService.findAll(query);
   }
 
   @Get(':id')

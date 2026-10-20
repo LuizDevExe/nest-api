@@ -123,6 +123,33 @@ describe('Fórum (e2e)', () => {
       });
     });
 
+    it('lista os posts paginados, do mais novo para o mais antigo', async () => {
+      for (let i = 1; i <= 3; i++) {
+        await createPost(maria, {
+          title: `Post ${i}`,
+          content: 'Texto',
+        }).expect(201);
+      }
+      const res = await http
+        .get('/post?page=2&limit=2')
+        .set(maria.auth)
+        .expect(200);
+      expect(res.body.meta).toEqual({
+        page: 2,
+        limit: 2,
+        total: 3,
+        totalPages: 2,
+      });
+      expect(res.body.data.map((p: { title: string }) => p.title)).toEqual([
+        'Post 1',
+      ]);
+    });
+
+    it('recusa paginação inválida com 400', async () => {
+      await http.get('/post?limit=500').set(maria.auth).expect(400);
+      await http.get('/post?page=0').set(maria.auth).expect(400);
+    });
+
     it('devolve 404 para post que não existe', () =>
       http.get('/post/999').set(maria.auth).expect(404));
 
