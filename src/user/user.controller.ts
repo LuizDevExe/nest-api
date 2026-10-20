@@ -87,6 +87,42 @@ export class UserController {
     return this.userService.createUser(userData);
   }
 
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Busca o usuário logado',
+    description: `Devolve o usuário dono do token enviado.
+    \nRota protegida — é necessário fazer sign-in e enviar o Bearer token.`,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuário encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', example: 1 },
+        email: { type: 'string', example: 'usuario@email.com' },
+        name: { type: 'string', example: 'João Silva' },
+        createdAt: {
+          type: 'string',
+          format: 'date-time',
+          example: '2025-10-08T22:30:31.104Z',
+        },
+        updatedAt: {
+          type: 'string',
+          format: 'date-time',
+          example: '2025-10-08T22:30:31.104Z',
+        },
+      },
+    },
+  })
+  async getMe(
+    @CurrentUserId() userId: number,
+  ): Promise<Omit<UserModel, 'password'> | null> {
+    return this.userService.getUser({ id: userId });
+  }
+
   @Get(':id')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()

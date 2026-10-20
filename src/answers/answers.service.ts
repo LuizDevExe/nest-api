@@ -3,6 +3,7 @@ import { assertOwner } from 'src/auth/ownership';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
 import { PrismaService } from 'src/database/prisma.service';
+import { AUTHOR } from 'src/common/author';
 
 @Injectable()
 export class AnswersService {
@@ -38,12 +39,7 @@ export class AnswersService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }
@@ -56,12 +52,7 @@ export class AnswersService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }
@@ -82,12 +73,7 @@ export class AnswersService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }
@@ -107,12 +93,7 @@ export class AnswersService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }
@@ -131,12 +112,7 @@ export class AnswersService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }

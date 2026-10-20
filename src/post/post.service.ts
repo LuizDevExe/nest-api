@@ -4,8 +4,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'src/database/prisma.service';
 import { PaginationQueryDto, toPage } from 'src/common/pagination';
-
-const AUTHOR = { select: { name: true, email: true } } as const;
+import { AUTHOR } from 'src/common/author';
 
 // o que a listagem devolve de cada post: o autor e as respostas com seus autores
 const POST_LIST_SELECT = {
@@ -48,12 +47,7 @@ export class PostService {
         title: true,
         content: true,
         createdAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }
@@ -81,7 +75,7 @@ export class PostService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user: { select: { name: true, email: true } },
+        user: AUTHOR,
       },
     });
 
@@ -107,12 +101,7 @@ export class PostService {
         content: true,
         createdAt: true,
         updatedAt: true,
-        user: {
-          select: {
-            email: true,
-            name: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }
@@ -133,12 +122,7 @@ export class PostService {
         content: true,
         createdAt: true,
         userId: false,
-        user: {
-          select: {
-            email: true,
-            name: true,
-          },
-        },
+        user: AUTHOR,
       },
     });
   }

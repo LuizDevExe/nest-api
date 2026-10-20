@@ -112,6 +112,13 @@ describe('Fórum (e2e)', () => {
 
     it('não deixa apagar a conta de outra pessoa', () =>
       http.delete(`/user/${maria.id}`).set(joao.auth).expect(403));
+
+    it('devolve o usuário logado em /user/me', async () => {
+      const res = await http.get('/user/me').set(maria.auth).expect(200);
+      expect(res.body).toMatchObject({ name: 'Maria Silva' });
+    });
+
+    it('exige token em /user/me', () => http.get('/user/me').expect(401));
   });
 
   describe('posts', () => {
@@ -120,6 +127,15 @@ describe('Fórum (e2e)', () => {
       expect(res.body).toMatchObject({
         title: 'Primeiro post',
         user: { name: 'Maria Silva' },
+      });
+    });
+
+    it('lista o autor com id e name, sem o e-mail', async () => {
+      await createPost(maria).expect(201);
+      const res = await http.get('/post').set(maria.auth).expect(200);
+      expect(res.body.data[0].user).toEqual({
+        id: maria.id,
+        name: 'Maria Silva',
       });
     });
 
