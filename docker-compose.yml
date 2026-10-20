@@ -17,5 +17,18 @@ services:
       timeout: 3s
       retries: 20
 
+  api:
+    profiles: ["app"]
+    build: .
+    environment:
+      DATABASE_URL: postgresql://forum:forum@db:5432/forum?schema=public
+      SECRET_KEY: ${SECRET_KEY:?defina SECRET_KEY no .env (mínimo 32 caracteres)}
+      PORT: 3000
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   db-data:
