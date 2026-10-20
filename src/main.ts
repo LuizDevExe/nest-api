@@ -1,14 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { loadEnv } from './config/env';
+import { configureApp } from './app.setup';
 
 async function bootstrap() {
   loadEnv();
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe());
+  configureApp(app);
 
   const config = new DocumentBuilder()
     .setTitle('Fórum Simples com Nest.js')
