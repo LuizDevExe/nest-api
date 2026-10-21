@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { User as UserModel } from '@prisma/client';
@@ -120,7 +121,15 @@ export class UserController {
   async getMe(
     @CurrentUserId() userId: number,
   ): Promise<Omit<UserModel, 'password'> | null> {
-    return this.userService.getUser({ id: userId });
+    try {
+      return await this.userService.getUser({ id: userId });
+    } catch (error) {
+      // o dono do token apagou a própria conta depois que o JWT foi emitido
+      if (error instanceof NotFoundException) {
+        throw new UnauthorizedException();
+      }
+      throw error;
+    }
   }
 
   @Get(':id')
