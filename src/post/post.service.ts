@@ -76,6 +76,16 @@ export class PostService {
         createdAt: true,
         updatedAt: true,
         user: AUTHOR,
+        answers: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            updatedAt: true,
+            user: AUTHOR,
+          },
+        },
       },
     });
 

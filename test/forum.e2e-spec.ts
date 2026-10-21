@@ -169,6 +169,42 @@ describe('Fórum (e2e)', () => {
     it('devolve 404 para post que não existe', () =>
       http.get('/post/999').set(maria.auth).expect(404));
 
+    it('devolve as respostas do post, em ordem, sem o e-mail do autor', async () => {
+      const post = await createPost(maria).expect(201);
+      const primeira = await http
+        .post(`/answers/${post.body.id}`)
+        .set(joao.auth)
+        .send({ content: 'Primeira resposta' })
+        .expect(201);
+      const segunda = await http
+        .post(`/answers/${post.body.id}`)
+        .set(maria.auth)
+        .send({ content: 'Segunda resposta' })
+        .expect(201);
+
+      const res = await http
+        .get(`/post/${post.body.id}`)
+        .set(maria.auth)
+        .expect(200);
+
+      expect(res.body.answers).toEqual([
+        {
+          id: primeira.body.id,
+          content: 'Primeira resposta',
+          createdAt: primeira.body.createdAt,
+          updatedAt: primeira.body.updatedAt,
+          user: { id: joao.id, name: 'João Souza' },
+        },
+        {
+          id: segunda.body.id,
+          content: 'Segunda resposta',
+          createdAt: segunda.body.createdAt,
+          updatedAt: segunda.body.updatedAt,
+          user: { id: maria.id, name: 'Maria Silva' },
+        },
+      ]);
+    });
+
     it('não deixa editar o post de outra pessoa', async () => {
       const post = await createPost(maria).expect(201);
       await http
