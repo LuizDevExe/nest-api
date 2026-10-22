@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Community, CommunityRole, Membership } from '@prisma/client';
+import { Community, CommunityRole, Membership, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/database/prisma.service';
 import { PaginationQueryDto, toPage } from 'src/common/pagination';
 import { AUTHOR } from 'src/common/author';
@@ -26,8 +26,9 @@ export class CommunitiesService {
   async roleOf(
     communityId: number,
     userId: number,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<CommunityRole | null> {
-    const membership = await this.prisma.membership.findUnique({
+    const membership = await db.membership.findUnique({
       where: { userId_communityId: { userId, communityId } },
     });
     return membership && !membership.bannedAt ? membership.role : null;
@@ -41,13 +42,19 @@ export class CommunitiesService {
       throw new ConflictException(`Slug "${dto.slug}" already in use`);
     }
 
-    const community = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.community.create({ data: dto });
-      await tx.membership.create({
-        data: { userId, communityId: created.id, role: 'OWNER' },
-      });
-      return created;
-    });
+    const community = await this.prisma
+      .$transaction(async (tx) => {
+        const created = await tx.community.create({ data: dto });
+        await tx.membership.create({
+          data: { userId, communityId: created.id, role: 'OWNER' },
+        });
+        return created;
+      })
+      .catch(
+        conflictOnUnique(
+          new ConflictException(`Slug "${dto.slug}" already in use`),
+        ),
+      );
 
     return this.present(community, 1, 'OWNER');
   }
@@ -156,9 +163,15 @@ export class CommunitiesService {
       throw new ConflictException('Already a member of this community');
     }
 
-    await this.prisma.membership.create({
-      data: { userId, communityId: community.id, role: 'MEMBER' },
-    });
+    await this.prisma.membership
+      .create({
+        data: { userId, communityId: community.id, role: 'MEMBER' },
+      })
+      .catch(
+        conflictOnUnique(
+          new ConflictException('Already a member of this community'),
+        ),
+      );
     const memberCount = await this.prisma.membership.count({
       where: { communityId: community.id, bannedAt: null },
     });
@@ -174,9 +187,17 @@ export class CommunitiesService {
       );
     }
 
-    await this.prisma.membership.delete({
-      where: { userId_communityId: { userId, communityId: community.id } },
-    });
+    // condicional: se virou dono ou foi banido no meio do caminho, não apaga
+    await this.writeOrConflict(
+      this.prisma.membership.deleteMany({
+        where: {
+          userId,
+          communityId: community.id,
+          role: membership.role,
+          bannedAt: null,
+        },
+      }),
+    );
     return { slug: community.slug };
   }
 
@@ -187,71 +208,99 @@ export class CommunitiesService {
     actorUserId: number,
   ) {
     const community = await this.getCommunityOrThrow(slug);
-    const actorRole = await this.roleOf(community.id, actorUserId);
-    const target = await this.getActiveMembership(community.id, targetUserId);
+    await this.prisma.$transaction(async (tx) => {
+      const actorRole = await this.roleOf(community.id, actorUserId, tx);
+      const target = await this.getActiveMembership(
+        community.id,
+        targetUserId,
+        tx,
+      );
 
-    if (!can(actorRole, 'changeRole', { role: target.role, newRole })) {
-      throw new ForbiddenException();
-    }
+      if (!can(actorRole, 'changeRole', { role: target.role, newRole })) {
+        throw new ForbiddenException();
+      }
 
-    const updated = await this.prisma.membership.update({
-      where: {
-        userId_communityId: { userId: targetUserId, communityId: community.id },
-      },
-      data: { role: newRole },
+      await this.writeOrConflict(
+        tx.membership.updateMany({
+          where: {
+            userId: targetUserId,
+            communityId: community.id,
+            role: target.role,
+            bannedAt: null,
+          },
+          data: { role: newRole },
+        }),
+      );
     });
-    return { userId: targetUserId, role: updated.role };
+    return { userId: targetUserId, role: newRole };
   }
 
   async ban(slug: string, targetUserId: number, actorUserId: number) {
     const community = await this.getCommunityOrThrow(slug);
-    const actorRole = await this.roleOf(community.id, actorUserId);
-    const target = await this.getActiveMembership(community.id, targetUserId);
+    const bannedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const actorRole = await this.roleOf(community.id, actorUserId, tx);
+      const target = await this.getActiveMembership(
+        community.id,
+        targetUserId,
+        tx,
+      );
 
-    if (!can(actorRole, 'ban', { role: target.role })) {
-      throw new ForbiddenException();
-    }
+      if (!can(actorRole, 'ban', { role: target.role })) {
+        throw new ForbiddenException();
+      }
 
-    // bane e rebaixa para MEMBER
-    const updated = await this.prisma.membership.update({
-      where: {
-        userId_communityId: { userId: targetUserId, communityId: community.id },
-      },
-      data: { role: 'MEMBER', bannedAt: new Date() },
+      // bane e rebaixa para MEMBER
+      await this.writeOrConflict(
+        tx.membership.updateMany({
+          where: {
+            userId: targetUserId,
+            communityId: community.id,
+            role: target.role,
+            bannedAt: null,
+          },
+          data: { role: 'MEMBER', bannedAt },
+        }),
+      );
     });
-    return { userId: targetUserId, bannedAt: updated.bannedAt };
+    return { userId: targetUserId, bannedAt };
   }
 
   async transfer(slug: string, targetUserId: number, actorUserId: number) {
     const community = await this.getCommunityOrThrow(slug);
-    const actorRole = await this.roleOf(community.id, actorUserId);
+    await this.prisma.$transaction(async (tx) => {
+      const actorRole = await this.roleOf(community.id, actorUserId, tx);
 
-    // mesma ordem de changeRole/ban: existência do alvo antes da permissão,
-    // senão um não-dono transferindo para alvo inexistente/banido levaria 403 em vez do 404 uniforme
-    await this.getActiveMembership(community.id, targetUserId);
+      // mesma ordem de changeRole/ban: existência do alvo antes da permissão,
+      // senão um não-dono transferindo para alvo inexistente/banido levaria 403 em vez do 404 uniforme
+      await this.getActiveMembership(community.id, targetUserId, tx);
 
-    if (!can(actorRole, 'transfer')) throw new ForbiddenException();
+      if (!can(actorRole, 'transfer')) throw new ForbiddenException();
 
-    await this.prisma.$transaction([
-      this.prisma.membership.update({
-        where: {
-          userId_communityId: {
+      // as duas escritas só valem se o ator ainda for o dono e o alvo ainda for membro ativo;
+      // a segunda falhando desfaz a primeira (rollback da transação)
+      await this.writeOrConflict(
+        tx.membership.updateMany({
+          where: {
             userId: actorUserId,
             communityId: community.id,
+            role: 'OWNER',
+            bannedAt: null,
           },
-        },
-        data: { role: 'ADMIN' },
-      }),
-      this.prisma.membership.update({
-        where: {
-          userId_communityId: {
+          data: { role: 'ADMIN' },
+        }),
+      );
+      await this.writeOrConflict(
+        tx.membership.updateMany({
+          where: {
             userId: targetUserId,
             communityId: community.id,
+            bannedAt: null,
           },
-        },
-        data: { role: 'OWNER' },
-      }),
-    ]);
+          data: { role: 'OWNER' },
+        }),
+      );
+    });
     return { ownerId: targetUserId };
   }
 
@@ -302,14 +351,27 @@ export class CommunitiesService {
   private async getActiveMembership(
     communityId: number,
     userId: number,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<Membership> {
-    const membership = await this.prisma.membership.findUnique({
+    const membership = await db.membership.findUnique({
       where: { userId_communityId: { userId, communityId } },
     });
     if (!membership || membership.bannedAt) {
       throw new NotFoundException('Member not found');
     }
     return membership;
+  }
+
+  // escrita condicionada ao estado que acabou de ser checado: sob READ COMMITTED o UPDATE/DELETE
+  // reavalia o WHERE contra a versão mais nova da linha, então se outra requisição mudou o membro
+  // no meio do caminho nada é escrito e a operação dá 409
+  private async writeOrConflict(write: Promise<{ count: number }>) {
+    const { count } = await write;
+    if (count !== 1) {
+      throw new ConflictException(
+        'The membership changed meanwhile; refresh and try again',
+      );
+    }
   }
 
   private present(
@@ -325,4 +387,17 @@ export class CommunitiesService {
       myRole,
     };
   }
+}
+
+// P2002 (unique) de uma corrida check-then-insert vira o mesmo 409 da checagem
+function conflictOnUnique(conflict: ConflictException) {
+  return (error: unknown): never => {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw conflict;
+    }
+    throw error;
+  };
 }

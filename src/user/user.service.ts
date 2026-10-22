@@ -109,32 +109,46 @@ export class UserService {
       throw new NotFoundException(`Usuário com id ${where.id} não encontrado`);
     }
 
-    const ownsACommunity = await this.prisma.membership.findFirst({
-      where: { userId: user.id, role: 'OWNER' },
-    });
-    if (ownsACommunity) {
-      throw new ConflictException(
-        'Transfira a posse ou apague a comunidade antes de apagar a conta',
-      );
-    }
+    const ownsACommunity = new ConflictException(
+      'Transfira a posse ou apague a comunidade antes de apagar a conta',
+    );
 
-    // o usuário, os posts, as respostas e as memberships dele saem juntos, ou nada sai
-    const [, , , deleted] = await this.prisma.$transaction([
-      this.prisma.answers.deleteMany({ where: { userId: user.id } }),
-      this.prisma.post.deleteMany({ where: { userId: user.id } }),
-      this.prisma.membership.deleteMany({ where: { userId: user.id } }),
-      this.prisma.user.delete({
-        where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          password: false,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-    ]);
-    return deleted;
+    // o usuário, os posts, as respostas e as memberships dele saem juntos, ou nada sai.
+    // A checagem de dono vale na hora da escrita: o deleteMany não apaga linhas OWNER, e se uma
+    // transferência deu a posse a ele no meio do caminho, a FK RESTRICT de Membership.userId
+    // faz o user.delete falhar (P2003), que vira o mesmo 409.
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const owned = await tx.membership.findFirst({
+          where: { userId: user.id, role: 'OWNER' },
+        });
+        if (owned) throw ownsACommunity;
+
+        await tx.answers.deleteMany({ where: { userId: user.id } });
+        await tx.post.deleteMany({ where: { userId: user.id } });
+        await tx.membership.deleteMany({
+          where: { userId: user.id, role: { not: 'OWNER' } },
+        });
+        return tx.user.delete({
+          where,
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: false,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw ownsACommunity;
+      }
+      throw error;
+    }
   }
 }

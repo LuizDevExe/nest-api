@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { PrismaService } from '../src/database/prisma.service';
 import { createTestApp, resetDatabase, signUpAndSignIn } from './helpers';
 
 type Auth = { id: number; auth: { Authorization: string } };
@@ -15,6 +16,9 @@ describe('Comunidades (e2e)', () => {
 
   beforeAll(async () => {
     app = await createTestApp();
+    // escuta uma vez: senão o supertest abre e fecha uma porta efêmera por requisição,
+    // e nas corridas uma requisição fecha o servidor no meio da outra (ECONNRESET)
+    await app.listen(0);
     http = request(app.getHttpServer());
   });
 
@@ -53,6 +57,12 @@ describe('Comunidades (e2e)', () => {
       userId: target.id,
     });
 
+  const transfer = (slug: string, who: Auth, target: Auth) =>
+    http
+      .post(`/communities/${slug}/transfer`)
+      .set(who.auth)
+      .send({ userId: target.id });
+
   const createPost = (
     who: Auth,
     communitySlug?: string,
@@ -82,6 +92,14 @@ describe('Comunidades (e2e)', () => {
       await createCommunity(joao).expect(409);
     });
 
+    it('duas criações do mesmo slug ao mesmo tempo: 201 e 409, nunca 500', async () => {
+      const results = await Promise.all([
+        createCommunity(maria),
+        createCommunity(joao),
+      ]);
+      expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+    });
+
     it('recusa slug maiúsculo com 400 (não converte)', () =>
       createCommunity(maria, { slug: 'Nest BR', name: 'Nest BR' }).expect(400));
 
@@ -109,6 +127,14 @@ describe('Comunidades (e2e)', () => {
     it('entrar de novo dá 409', async () => {
       await join('nest-br', joao).expect(201);
       await join('nest-br', joao).expect(409);
+    });
+
+    it('dois "entrar" do mesmo usuário ao mesmo tempo: 201 e 409, nunca 500', async () => {
+      const results = await Promise.all([
+        join('nest-br', joao),
+        join('nest-br', joao),
+      ]);
+      expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
     });
 
     it('dono tenta sair dá 409', () =>
@@ -216,6 +242,13 @@ describe('Comunidades (e2e)', () => {
       expect(res.body.name).toBe('Nest Brasil');
     });
 
+    it('editar com name: null dá 400, não 500', () =>
+      http
+        .patch('/communities/nest-br')
+        .set(joao.auth)
+        .send({ name: null })
+        .expect(400));
+
     it('Ana (membro) tenta editar dá 403', () =>
       http
         .patch('/communities/nest-br')
@@ -252,6 +285,96 @@ describe('Comunidades (e2e)', () => {
         .expect(200);
       await http.delete('/communities/nest-br').set(joao.auth).expect(200);
       await http.get('/communities/nest-br').set(joao.auth).expect(404);
+    });
+  });
+
+  // I1: as checagens de cargo valem na hora da escrita; a corrida perde com 403/404/409, nunca 500,
+  // e a comunidade termina sempre com exatamente um dono ativo
+  describe('concorrência: sempre exatamente um dono', () => {
+    const expectOneActiveOwner = async (slug: string) => {
+      const owners = await app.get(PrismaService).membership.findMany({
+        where: { community: { slug }, role: 'OWNER' },
+        select: { userId: true, bannedAt: true },
+      });
+      expect(owners).toHaveLength(1);
+      expect(owners[0].bannedAt).toBeNull();
+      return owners[0].userId;
+    };
+
+    const statusesOf = (results: { status: number }[]) =>
+      results.map((r) => r.status);
+
+    beforeEach(async () => {
+      await createCommunity(maria).expect(201);
+      await join('nest-br', joao).expect(201);
+      await join('nest-br', ana).expect(201);
+      await changeRole('nest-br', maria, ana, 'MODERATOR').expect(200);
+    });
+
+    it('duas transferências para alvos diferentes: uma passa, a outra é recusada, e só um dono', async () => {
+      const [toJoao, toAna] = await Promise.all([
+        transfer('nest-br', maria, joao),
+        transfer('nest-br', maria, ana),
+      ]);
+      const statuses = statusesOf([toJoao, toAna]);
+      expect(statuses.filter((s) => s === 200)).toHaveLength(1);
+      expect([403, 409]).toContain(statuses.find((s) => s !== 200));
+      const owner = await expectOneActiveOwner('nest-br');
+      expect(owner).toBe(toJoao.status === 200 ? joao.id : ana.id);
+    });
+
+    it('banir e transferir para o mesmo membro ao mesmo tempo: continua um dono', async () => {
+      const results = await Promise.all([
+        ban('nest-br', ana, joao),
+        transfer('nest-br', maria, joao),
+      ]);
+      const statuses = statusesOf(results);
+      expect(statuses.filter((s) => s === 200)).toHaveLength(1);
+      expect([403, 404, 409]).toContain(statuses.find((s) => s !== 200));
+      await expectOneActiveOwner('nest-br');
+    });
+
+    it('mudar cargo e transferir para o mesmo membro ao mesmo tempo: continua um dono', async () => {
+      // várias rodadas, com a mudança de cargo saindo um pouco depois a cada uma,
+      // para que em alguma ela escreva depois de a transferência já ter gravado
+      for (let i = 0; i < 10; i++) {
+        const slug = `corrida-${i}`;
+        await createCommunity(maria, { slug, name: 'Corrida' }).expect(201);
+        await join(slug, joao).expect(201);
+        const transferring = transfer(slug, maria, joao).then((r) => r);
+        await new Promise((resolve) => setTimeout(resolve, i * 2));
+        const statuses = statusesOf(
+          await Promise.all([
+            transferring,
+            changeRole(slug, maria, joao, 'MODERATOR'),
+          ]),
+        );
+        expect(statuses).toContain(200);
+        for (const s of statuses) expect([200, 403, 404, 409]).toContain(s);
+        await expectOneActiveOwner(slug);
+      }
+    });
+
+    it('apagar a conta e receber a posse ao mesmo tempo: continua um dono', async () => {
+      const results = await Promise.all([
+        http.delete(`/user/${joao.id}`).set(joao.auth),
+        transfer('nest-br', maria, joao),
+      ]);
+      const statuses = statusesOf(results);
+      expect(statuses.filter((s) => s === 200)).toHaveLength(1);
+      expect([404, 409]).toContain(statuses.find((s) => s !== 200));
+      await expectOneActiveOwner('nest-br');
+    });
+
+    it('sair e receber a posse ao mesmo tempo: continua um dono', async () => {
+      const results = await Promise.all([
+        http.delete('/communities/nest-br/members/me').set(joao.auth),
+        transfer('nest-br', maria, joao),
+      ]);
+      const statuses = statusesOf(results);
+      expect(statuses.filter((s) => s === 200)).toHaveLength(1);
+      expect([404, 409]).toContain(statuses.find((s) => s !== 200));
+      await expectOneActiveOwner('nest-br');
     });
   });
 

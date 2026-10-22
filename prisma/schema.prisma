@@ -43,6 +43,9 @@ model Post {
   community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   answers   Answers[]
+
+  // GET /communities/:slug/posts (ordena por createdAt) e a cascata ao apagar a comunidade
+  @@index([communityId, createdAt])
 }
 
 enum CommunityRole {
@@ -75,6 +78,8 @@ model Membership {
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@id([userId, communityId])
+  // a PK começa por userId; lista/contagem de membros e a cascata filtram por communityId
+  @@index([communityId])
 }
 
 model Answers{
