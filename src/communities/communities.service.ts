@@ -224,10 +224,12 @@ export class CommunitiesService {
   async transfer(slug: string, targetUserId: number, actorUserId: number) {
     const community = await this.getCommunityOrThrow(slug);
     const actorRole = await this.roleOf(community.id, actorUserId);
-    if (!can(actorRole, 'transfer')) throw new ForbiddenException();
 
-    // precisa existir e estar ativo, senão 404 (mesmo que seja o próprio dono "transferindo" pra si)
+    // mesma ordem de changeRole/ban: existência do alvo antes da permissão,
+    // senão um não-dono transferindo para alvo inexistente/banido levaria 403 em vez do 404 uniforme
     await this.getActiveMembership(community.id, targetUserId);
+
+    if (!can(actorRole, 'transfer')) throw new ForbiddenException();
 
     await this.prisma.$transaction([
       this.prisma.membership.update({

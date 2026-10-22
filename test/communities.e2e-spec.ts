@@ -166,6 +166,24 @@ describe('Comunidades (e2e)', () => {
         .send({ userId: carlos.id })
         .expect(404);
     });
+
+    it('transferir com ator sem permissão e alvo inexistente/banido dá 404, não 403', async () => {
+      const carlos = await signUpAndSignIn(app, 'carlos@email.com', 'Carlos');
+      // João é só MEMBER (sem permissão de transfer) e o alvo nem existe como membro: 404 deve vencer o 403
+      await http
+        .post('/communities/nest-br/transfer')
+        .set(joao.auth)
+        .send({ userId: carlos.id })
+        .expect(404);
+
+      // idem com um alvo banido
+      await ban('nest-br', maria, bia).expect(200);
+      await http
+        .post('/communities/nest-br/transfer')
+        .set(joao.auth)
+        .send({ userId: bia.id })
+        .expect(404);
+    });
   });
 
   describe('editar e apagar comunidade', () => {
