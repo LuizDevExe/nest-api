@@ -8,6 +8,7 @@ import { Community, CommunityRole, Membership } from '@prisma/client';
 import { PrismaService } from 'src/database/prisma.service';
 import { PaginationQueryDto, toPage } from 'src/common/pagination';
 import { AUTHOR } from 'src/common/author';
+import { POST_LIST_SELECT } from 'src/common/post-select';
 import { can, rank } from './permissions';
 import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
@@ -268,6 +269,23 @@ export class CommunitiesService {
     const data = sorted.slice(start, start + query.limit);
 
     return toPage(data, sorted.length, query);
+  }
+
+  // mesmo formato de item que GET /post, filtrado pela comunidade
+  async postsOf(slug: string, query: PaginationQueryDto) {
+    const community = await this.getCommunityOrThrow(slug);
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        where: { communityId: community.id },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: POST_LIST_SELECT,
+      }),
+      this.prisma.post.count({ where: { communityId: community.id } }),
+    ]);
+    return toPage(data, total, query);
   }
 
   private async getCommunityOrThrow(slug: string): Promise<Community> {

@@ -1,13 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { assertOwner } from 'src/auth/ownership';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
 import { PrismaService } from 'src/database/prisma.service';
 import { AUTHOR } from 'src/common/author';
+import { CommunitiesService } from 'src/communities/communities.service';
+import { can } from 'src/communities/permissions';
 
 @Injectable()
 export class AnswersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly communitiesService: CommunitiesService,
+  ) {}
 
   async create(
     createAnswerDto: CreateAnswerDto,
@@ -18,6 +27,16 @@ export class AnswersService {
 
     if (!post) {
       throw new NotFoundException(`Post with id ${postId} not found`);
+    }
+
+    if (post.communityId) {
+      const role = await this.communitiesService.roleOf(
+        post.communityId,
+        userId,
+      );
+      if (!can(role, 'post')) {
+        throw new ForbiddenException();
+      }
     }
 
     const newAnswer = {
@@ -98,12 +117,24 @@ export class AnswersService {
     });
   }
 
+  // autor apaga sempre; moderador ou acima apaga qualquer resposta da comunidade do post
   async remove(id: number, userId: number) {
-    assertOwner(
-      await this.prisma.answers.findUnique({ where: { id } }),
-      userId,
-      'Answer',
-    );
+    const answer = await this.prisma.answers.findUnique({ where: { id } });
+    if (!answer) {
+      throw new NotFoundException(`Answer with id ${id} not found`);
+    }
+
+    if (answer.userId !== userId) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: answer.postId },
+      });
+      const role = post?.communityId
+        ? await this.communitiesService.roleOf(post.communityId, userId)
+        : null;
+      if (!can(role, 'moderate')) {
+        throw new ForbiddenException('Answer belongs to another user');
+      }
+    }
 
     return await this.prisma.answers.delete({
       where: { id },

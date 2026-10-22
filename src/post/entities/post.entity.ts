@@ -9,6 +9,7 @@ export class Post implements PrismaPost {
   content: string;
   createdAt: Date;
   updatedAt: Date;
+  communityId: number | null;
 
   User: User;
   answers?: Answer[];

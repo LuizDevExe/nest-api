@@ -195,6 +195,19 @@ export class CommunitiesController {
     return this.communitiesService.ban(slug, dto.userId, userId);
   }
 
+  @Get(':slug/posts')
+  @ApiOperation({
+    summary: 'Lista os posts da comunidade, paginados',
+    description:
+      'Mesmo formato de item de GET /post (autor, respostas e a comunidade).',
+  })
+  @ApiParam({ name: 'slug', example: 'nest-br' })
+  @ApiResponse({ status: 200, description: 'Página de posts da comunidade' })
+  @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
+  posts(@Param('slug') slug: string, @Query() query: PaginationQueryDto) {
+    return this.communitiesService.postsOf(slug, query);
+  }
+
   @Post(':slug/transfer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

@@ -53,6 +53,19 @@ describe('Comunidades (e2e)', () => {
       userId: target.id,
     });
 
+  const createPost = (
+    who: Auth,
+    communitySlug?: string,
+    body: { title: string; content: string } = {
+      title: 'Post da comunidade',
+      content: 'Conteúdo',
+    },
+  ) =>
+    http
+      .post('/post')
+      .set(who.auth)
+      .send(communitySlug ? { ...body, communitySlug } : body);
+
   describe('criar comunidade', () => {
     it('cria com o criador como OWNER', async () => {
       const res = await createCommunity(maria).expect(201);
@@ -346,6 +359,117 @@ describe('Comunidades (e2e)', () => {
       await createCommunity(maria).expect(201);
       await join('nest-br', joao).expect(201);
       await http.delete(`/user/${joao.id}`).set(joao.auth).expect(200);
+    });
+  });
+
+  describe('posts e respostas em comunidades', () => {
+    beforeEach(async () => {
+      await createCommunity(maria).expect(201);
+      await join('nest-br', joao).expect(201);
+      await join('nest-br', ana).expect(201);
+      // ana vira moderadora
+      await changeRole('nest-br', maria, joao, 'ADMIN').expect(200);
+      await changeRole('nest-br', joao, ana, 'MODERATOR').expect(200);
+    });
+
+    it('membro posta na comunidade: 201, aparece em GET /communities/:slug/posts e em GET /post com community.slug', async () => {
+      const post = await createPost(joao, 'nest-br').expect(201);
+
+      const porComunidade = await http
+        .get('/communities/nest-br/posts')
+        .set(joao.auth)
+        .expect(200);
+      expect(
+        porComunidade.body.data.map((p: { id: number }) => p.id),
+      ).toContain(post.body.id);
+
+      const feed = await http.get('/post').set(joao.auth).expect(200);
+      const noFeed = feed.body.data.find(
+        (p: { id: number }) => p.id === post.body.id,
+      );
+      expect(noFeed.community).toEqual({ slug: 'nest-br', name: 'Nest BR' });
+    });
+
+    it('GET /post/:id também inclui community: { slug, name }', async () => {
+      const post = await createPost(joao, 'nest-br').expect(201);
+      const res = await http
+        .get(`/post/${post.body.id}`)
+        .set(joao.auth)
+        .expect(200);
+      expect(res.body.community).toEqual({ slug: 'nest-br', name: 'Nest BR' });
+    });
+
+    it('post sem comunidade continua funcionando, com community: null', async () => {
+      const post = await createPost(bia).expect(201);
+
+      const feed = await http.get('/post').set(bia.auth).expect(200);
+      const noFeed = feed.body.data.find(
+        (p: { id: number }) => p.id === post.body.id,
+      );
+      expect(noFeed.community).toBeNull();
+
+      const res = await http
+        .get(`/post/${post.body.id}`)
+        .set(bia.auth)
+        .expect(200);
+      expect(res.body.community).toBeNull();
+    });
+
+    it('criar post com communitySlug inexistente dá 404', () =>
+      createPost(joao, 'nao-existe').expect(404));
+
+    it('não membro posta na comunidade dá 403', () =>
+      createPost(bia, 'nest-br').expect(403));
+
+    it('não membro responde a um post da comunidade dá 403', async () => {
+      const post = await createPost(joao, 'nest-br').expect(201);
+      await http
+        .post(`/answers/${post.body.id}`)
+        .set(bia.auth)
+        .send({ content: 'Posso?' })
+        .expect(403);
+    });
+
+    it('membro banido posta na comunidade dá 403', async () => {
+      await join('nest-br', bia).expect(201);
+      await ban('nest-br', ana, bia).expect(200);
+      await createPost(bia, 'nest-br').expect(403);
+    });
+
+    it('moderadora apaga o post de um membro: 200', async () => {
+      const post = await createPost(joao, 'nest-br').expect(201);
+      await http.delete(`/post/${post.body.id}`).set(ana.auth).expect(200);
+    });
+
+    it('um membro apaga o post de outro membro dá 403 (regra do feed geral não muda)', async () => {
+      await join('nest-br', bia).expect(201);
+      const post = await createPost(joao, 'nest-br').expect(201);
+      await http.delete(`/post/${post.body.id}`).set(bia.auth).expect(403);
+    });
+
+    it('moderadora apaga a resposta de um membro na comunidade: 200', async () => {
+      const post = await createPost(joao, 'nest-br').expect(201);
+      const answer = await http
+        .post(`/answers/${post.body.id}`)
+        .set(joao.auth)
+        .send({ content: 'Resposta do João' })
+        .expect(201);
+      await http.delete(`/answers/${answer.body.id}`).set(ana.auth).expect(200);
+    });
+
+    it('apagar a comunidade apaga os posts e as respostas, e GET /post continua 200', async () => {
+      const post = await createPost(joao, 'nest-br').expect(201);
+      const answer = await http
+        .post(`/answers/${post.body.id}`)
+        .set(joao.auth)
+        .send({ content: 'Resposta' })
+        .expect(201);
+
+      await http.delete('/communities/nest-br').set(maria.auth).expect(200);
+
+      await http.get(`/post/${post.body.id}`).set(maria.auth).expect(404);
+      await http.get(`/answers/${answer.body.id}`).set(maria.auth).expect(404);
+      await http.get('/post').set(maria.auth).expect(200);
     });
   });
 });

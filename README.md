@@ -59,9 +59,23 @@ O CI roda lint, testes de unidade, build e e2e (com um Postgres de serviço) a c
 | --- | --- |
 | Criar conta, fazer login | qualquer pessoa |
 | Ver usuários, posts e respostas | quem está logado |
-| Criar post ou resposta | quem está logado (vira o autor) |
+| Criar post ou resposta no feed geral (sem comunidade) | quem está logado (vira o autor) |
 | Editar ou apagar post / resposta | só o autor |
 | Editar ou apagar a conta | só o dono da conta |
+
+**Dentro de uma comunidade** (cargos: dono > admin > moderador > membro):
+
+| Ação | Quem pode |
+| --- | --- |
+| Entrar numa comunidade | qualquer usuário logado (banido recebe 403, já membro recebe 409) |
+| Postar e responder num post da comunidade | membro ativo (não banido) |
+| Apagar post ou resposta de outra pessoa na comunidade | moderador ou acima |
+| Banir um membro | moderador ou acima, e só alguém de cargo abaixo do seu |
+| Editar nome e descrição da comunidade | admin ou acima |
+| Mudar o cargo de alguém | admin ou acima; o alvo e o cargo novo precisam ficar abaixo do seu |
+| Passar a posse | só o dono |
+| Apagar a comunidade | só o dono (posts e respostas saem em cascata) |
+| Sair da comunidade | qualquer membro, menos o dono (precisa passar a posse antes) |
 
 ## Endpoints
 
@@ -72,16 +86,30 @@ O CI roda lint, testes de unidade, build e e2e (com um Postgres de serviço) a c
 | `PATCH` | `/user/:id` | Atualiza a própria conta |
 | `DELETE` | `/user/:id` | Apaga a própria conta, com os posts e as respostas |
 | `POST` | `/auth/signin` | Login; devolve o `access_token` (JWT, 12 h) |
-| `POST` | `/post` | Cria um post |
+| `POST` | `/post` | Cria um post (`communitySlug` opcional, para postar numa comunidade) |
 | `GET` | `/post?page=1&limit=10` | Lista os posts, do mais novo para o mais antigo (máximo 50 por página) |
 | `GET` | `/post/:id` | Busca um post |
 | `PATCH` | `/post/:id` | Edita o próprio post |
-| `DELETE` | `/post/:id` | Apaga o próprio post e as respostas dele |
+| `DELETE` | `/post/:id` | Apaga o próprio post; numa comunidade, moderador ou acima também apaga |
 | `POST` | `/answers/:postId` | Responde a um post |
 | `GET` | `/answers` | Lista as respostas |
 | `GET` | `/answers/:id` | Busca uma resposta |
 | `PATCH` | `/answers/:id` | Edita a própria resposta |
-| `DELETE` | `/answers/:id` | Apaga a própria resposta |
+| `DELETE` | `/answers/:id` | Apaga a própria resposta; numa comunidade, moderador ou acima também apaga |
+| `POST` | `/communities` | Cria uma comunidade (o criador vira dono) |
+| `GET` | `/communities?page=1&limit=10&mine=true` | Lista comunidades, paginadas (`mine` só as do chamador) |
+| `GET` | `/communities/:slug` | Busca uma comunidade pelo slug |
+| `PATCH` | `/communities/:slug` | Edita nome e/ou descrição (admin ou acima) |
+| `DELETE` | `/communities/:slug` | Apaga a comunidade (só o dono) |
+| `GET` | `/communities/:slug/posts?page=1&limit=10` | Lista os posts da comunidade (mesmo formato de item de `GET /post`) |
+| `GET` | `/communities/:slug/members` | Lista os membros ativos |
+| `POST` | `/communities/:slug/members` | Entra na comunidade |
+| `DELETE` | `/communities/:slug/members/me` | Sai da comunidade |
+| `PATCH` | `/communities/:slug/members/:userId` | Muda o cargo de um membro (admin ou acima) |
+| `POST` | `/communities/:slug/bans` | Bane um membro (moderador ou acima) |
+| `POST` | `/communities/:slug/transfer` | Transfere a posse (só o dono) |
+
+A comunidade de cada post aparece como `community: { slug, name }` (ou `null`, para post do feed geral) em `GET /post`, `GET /post/:id` e `GET /communities/:slug/posts`.
 
 A listagem de posts responde `{ data, meta: { page, limit, total, totalPages } }`.
 
