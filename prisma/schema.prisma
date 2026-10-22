@@ -22,23 +22,59 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  
+
   posts Post[]
   answers Answers[]
+  memberships Membership[]
 }
 
 model Post {
   id        Int      @default(autoincrement()) @id
   title     String
-  content   String 
+  content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
 
   userId     Int
   user       User    @relation(fields: [userId], references: [id])
-  
+
+  communityId Int?
+  community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
   answers   Answers[]
+}
+
+enum CommunityRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+model Community {
+  id          Int      @default(autoincrement()) @id
+  slug        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships Membership[]
+  posts       Post[]
+}
+
+model Membership {
+  userId      Int
+  communityId Int
+  role        CommunityRole @default(MEMBER)
+  bannedAt    DateTime?
+  createdAt   DateTime      @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@id([userId, communityId])
 }
 
 model Answers{

@@ -22,7 +22,7 @@ export async function resetDatabase(app: INestApplication): Promise<void> {
   await app
     .get(PrismaService)
     .$executeRawUnsafe(
-      'TRUNCATE "Answers", "Post", "User" RESTART IDENTITY CASCADE',
+      'TRUNCATE "Answers", "Post", "Membership", "Community", "User" RESTART IDENTITY CASCADE',
     );
 }
 
