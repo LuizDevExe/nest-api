@@ -6,9 +6,17 @@ import { PrismaService } from './database/prisma.service';
 import { DatabaseModule } from './database/database.module';
 import { PostModule } from './post/post.module';
 import { AnswersModule } from './answers/answers.module';
+import { CommunitiesModule } from './communities/communities.module';
 
 @Module({
-  imports: [UserModule, AuthModule, DatabaseModule, PostModule, AnswersModule],
+  imports: [
+    UserModule,
+    AuthModule,
+    DatabaseModule,
+    PostModule,
+    AnswersModule,
+    CommunitiesModule,
+  ],
   controllers: [],
   providers: [AuthService, PrismaService],
 })

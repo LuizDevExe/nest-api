@@ -109,10 +109,20 @@ export class UserService {
       throw new NotFoundException(`Usuário com id ${where.id} não encontrado`);
     }
 
-    // o usuário, os posts e as respostas dele saem juntos, ou nada sai
-    const [, , deleted] = await this.prisma.$transaction([
+    const ownsACommunity = await this.prisma.membership.findFirst({
+      where: { userId: user.id, role: 'OWNER' },
+    });
+    if (ownsACommunity) {
+      throw new ConflictException(
+        'Transfira a posse ou apague a comunidade antes de apagar a conta',
+      );
+    }
+
+    // o usuário, os posts, as respostas e as memberships dele saem juntos, ou nada sai
+    const [, , , deleted] = await this.prisma.$transaction([
       this.prisma.answers.deleteMany({ where: { userId: user.id } }),
       this.prisma.post.deleteMany({ where: { userId: user.id } }),
+      this.prisma.membership.deleteMany({ where: { userId: user.id } }),
       this.prisma.user.delete({
         where,
         select: {
